@@ -12,10 +12,7 @@
     "test": "bun test src",
     "i18n:check": "bun scripts/check-i18n.ts",
     "firmware:check": "bun scripts/check-firmware-surface.ts",
-    "import-wheel-textures": "node scripts/import-wheel-textures.mjs",
-    "hub": "powershell -ExecutionPolicy Bypass -File scripts/Start-TelemetryHub.ps1 -GameMode",
-    "hub:build": "powershell -ExecutionPolicy Bypass -File scripts/Build-TelemetryHub.ps1",
-    "hub:build-overlay": "node scripts/copy-overlay-lan.mjs"
+    "import-wheel-textures": "node scripts/import-wheel-textures.mjs"
   },
   "devDependencies": {
     "@types/react": "^19.2.17",

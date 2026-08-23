@@ -5,7 +5,6 @@ import { translate } from '../../i18n/messages';
 import { Card, SectionHeader } from '../../shared/ui';
 import { LiveMonitorPanel } from '../live/LiveMonitorPanel';
 import { useObserveTelemetry } from '../observe/ObserveTelemetryContext';
-import { HubLanCard } from '../observe/HubLanCard';
 import { TimeSeriesChart } from '../telemetry/TimeSeriesChart';
 import { TelemetryControlPanel } from '../telemetry/TelemetryControlPanel';
 import { TelemetryOverlay } from '../telemetry/TelemetryOverlay';
@@ -48,7 +47,6 @@ export function ObserveWorkspace() {
       >
         <div className="observe-panel-body">
           <ObserveQuickBar />
-          <HubLanCard locale={locale} serialConnected={state.connected} />
 
           <section className="observe-section">
             <h3 className="observe-section-title">{translate(locale, 'observeSectionTelemetry')}</h3>

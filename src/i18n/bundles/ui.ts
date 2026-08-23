@@ -64,20 +64,7 @@ export const uiPt = {
   observeBackgroundRecording: 'Gravando em segundo plano',
   observeBackgroundHint:
     'A aba do navegador está em segundo plano. O polling serial pode ficar mais lento (~1 Hz); com HID ligado ou overlay PiP aberto a taxa mantém-se melhor.',
-  hubLanTitle: 'Hub de Telemetria LAN',
-  hubLanDescription: 'Servidor local para overlay na rede local e telemetria WebSocket/UDP. Com o jogo aberto: o hub usa a COM de controlo (CDC); a PWA não pode partilhar a mesma porta.',
-  hubLanChecking: 'A verificar hub…',
-  hubLanOnline: 'Hub online ({source}, {hz} Hz)',
-  hubLanOffline: 'Hub offline',
-  hubLanRefresh: 'Atualizar',
-  hubLanCopyCommand: 'Copiar comando',
-  hubLanCopied: 'Copiado',
-  hubLanOpenOverlay: 'Abrir overlay LAN',
-  hubLanHost: 'Host',
-  hubLanHttpPort: 'Porta HTTP',
-  hubLanSerialPort: 'COM',
-  hubLanPortOccupied:
-    'A PWA está com a serial aberta — o hub não consegue usar {port}. Desconecte aqui ou feche o hub.',
+
   observeStatusIdle: 'ocioso',
   observeHidTelemetryBadge: 'HID 1 kHz',
   observeKpiSamples: 'Amostras',
@@ -394,20 +381,7 @@ export const uiEn = {
   observeBackgroundRecording: 'Recording in background',
   observeBackgroundHint:
     'The browser tab is in the background. Serial polling may slow to ~1 Hz; with HID connected or the PiP overlay open, rate stays higher.',
-  hubLanTitle: 'LAN Telemetry Hub',
-  hubLanDescription: 'Local server for LAN overlay and WebSocket/UDP telemetry. With the game running: the hub uses the control COM (CDC); the PWA cannot share the same port.',
-  hubLanChecking: 'Checking hub…',
-  hubLanOnline: 'Hub online ({source}, {hz} Hz)',
-  hubLanOffline: 'Hub offline',
-  hubLanRefresh: 'Refresh',
-  hubLanCopyCommand: 'Copy command',
-  hubLanCopied: 'Copied',
-  hubLanOpenOverlay: 'Open LAN overlay',
-  hubLanHost: 'Host',
-  hubLanHttpPort: 'HTTP port',
-  hubLanSerialPort: 'COM',
-  hubLanPortOccupied:
-    'The PWA has serial open — the hub cannot use {port}. Disconnect here or close the hub.',
+
   observeStatusIdle: 'idle',
   observeHidTelemetryBadge: 'HID 1 kHz',
   observeKpiSamples: 'Samples',
