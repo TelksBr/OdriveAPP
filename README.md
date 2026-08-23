@@ -1,103 +1,168 @@
-# WheelForge
+# WheelForge 🏎️⚡
 
-**WheelForge** is a Progressive Web App for configuring and operating **Odrive-Wheel-compatible** FFB wheel bases over **Web Serial** and **WebHID**. A modern, structured alternative to the legacy single-file HTML configurator — setup wizard, motor/FFB tuning, GPIO inputs, live telemetry, profiles, DFU flash, and an FFB test lab.
+[![React 19](https://img.shields.io/badge/React-19.2-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Vite](https://img.shields.io/badge/Vite-8.0-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
+[![Bun](https://img.shields.io/badge/Bun-1.2-fbf0df?style=for-the-badge&logo=bun&logoColor=black)](https://bun.sh/)
+[![PWA Ready](https://img.shields.io/badge/PWA-Ready-FF5722?style=for-the-badge&logo=pwa&logoColor=white)](https://web.dev/progressive-web-apps/)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](LICENSE)
+
+**WheelForge** é uma Progressive Web App (PWA) de alto desempenho para configuração, ajuste fino, calibração e telemetria em tempo real para volantes Direct Drive FFB baseados no ecossistema **ODrive / Odrive-Wheel**.
+
+Construído do zero com **React 19**, **Three.js** e **Web Serial / WebHID / WebUSB APIs**, o WheelForge substitui configuradores monolíticos legados por uma experiência moderna, fluida e orientada a workspaces dedicados.
+
+---
+
+## 📸 Demonstração & Telas do Projeto
+
+### 1. Visão Geral (Cockpit Dashboard & Volante 3D)
+> Visualizador de orientação do volante 3D em tempo real, monitoramento de VBUS, corrente Iq, estados da FSM, barras de pedais/analógicos com suavização 60Hz e atalhos rápidos com 1 clique (*Limpar erros, Idle, Closed loop, Zerar volante e Calibração Anticogging*).
 
 <p align="center">
-  <img src="docs/screenshots/01-Header.png" alt="Dashboard overview" width="720">
+  <img src="docs/screenshots/01-dashboard.png" alt="Visão Geral - Dashboard & Volante 3D" width="900">
 </p>
 
-> **Not the firmware.** WheelForge is this web app only. Board firmware remains at [eagabriel/Odrive-Wheel](https://github.com/eagabriel/Odrive-Wheel).
+---
 
-## Requirements
+### 2. Entradas Analógicas & Mapeamento GPIO
+> Painel visual com leitura dinâmica do conversor ADC, barras filtradas em tempo real, captura automática de mínimos e máximos por canal, inversão de eixo, modos de botão HID e suavização de sinal configurável.
 
-| API | Used for | Browser |
-|-----|----------|---------|
-| **Web Serial** | Config, calibration, telemetry, console | Chrome, Edge, Opera (Chromium) |
-| **WebHID** | FFB effect test lab, 1 kHz HID telemetry (rc12+) | Same |
-| **WebUSB DFU** | Firmware flash from Maintenance tab | Same |
+<p align="center">
+  <img src="docs/screenshots/02-inputs-gpio.png" alt="Entradas Analógicas e GPIO" width="900">
+</p>
 
-Firefox and Safari are **not** supported (no Web Serial).
+---
 
-## Quick start
+### 3. Observar & Telemetria Avançada
+> Gráficos em tempo real com amostragem até 1 kHz HID, curvas de tensão DC bus, corrente do motor, torque FFB aplicado, posição angular precisa, tabela estatística de janela (mínimo, máximo, pico) e overlay PiP (*Picture-in-Picture*) para simuladores.
+
+<p align="center">
+  <img src="docs/screenshots/03-observe-telemetry.png" alt="Observar - Gráficos e Telemetria em Tempo Real" width="900">
+</p>
+
+---
+
+### 4. Performance Test & Benchmark de Inércia
+> Rotina automatizada de teste em 6 fases para medição de Pico de RPM, Aceleração Angular Máxima (RPM/s), Inércia mecânica do conjunto motor+volante ($J$), atrito estático (*friction breakaway*) e saturação de corrente.
+
+<p align="center">
+  <img src="docs/screenshots/04-performance-test.png" alt="Performance Test e Benchmark" width="900">
+</p>
+
+---
+
+## ✨ Principais Funcionalidades
+
+- 🧭 **Cockpit Integrado**: Visão geral com volante 3D interativo, estado de conexão, telemetria de barramento e botões de ação imediata.
+- ⚡ **Fluxo de Setup Guiado**: Assistente passo-a-passo para bring-up de novas placas, calibração de motor, pares de polos, sentido de rotação e divisor de tensão VBUS.
+- 🎛️ **Diagnóstico AS5047 & Encoders**: Ferramentas dedicadas para leitura de diagnóstico do encoder magnético AS5047 via SPI/ABI.
+- 🏎️ **Ajuste FFB & Efeitos PID**: Curvas de torque, filtros de amortecimento (*damping*), inércia, fricção e bancada de teste de efeitos USB HID PID via WebHID.
+- 🎮 **Gerenciamento de Entradas GPIO**: Suporte a pedais analógicos (acelerador, freio, embreagem), freio de mão e botões, com calibração intuitiva *min/max capture*.
+- 📊 **Monitoramento em Alta Frequência**: Gráficos multi-canal a 60 Hz e telemetria HID de 1 kHz sem travamentos na UI.
+- 💾 **Persistência Unificada**: Suporte a gravação em NVM ODrive e emulação EEPROM FFB, além de importação/exportação de perfis JSON.
+- 🔄 **Atualizador DFU WebUSB**: Gravação de novos firmwares direto do navegador através do protocolo padrão DFU STM32.
+- 🌐 **Internacionalização Completa**: Suporte nativo a Português (PT-BR) e Inglês (EN) com troca instantânea.
+
+---
+
+## 🛠️ Requisitos de Navegador
+
+O WheelForge se comunica diretamente com a placa via APIs modernas da Web, eliminando a necessidade de drivers proprietários ou softwares intermediários pesados:
+
+| API Web | Finalidade | Navegadores Compatíveis |
+|---|---|---|
+| **Web Serial** | Configuração, calibração, comandos e telemetria ODrive | Google Chrome, Microsoft Edge, Opera, Brave |
+| **WebHID** | Bancada de teste de efeitos FFB e telemetria HID 1 kHz | Google Chrome, Microsoft Edge, Opera, Brave |
+| **WebUSB (DFU)** | Atualização e gravação de firmware STM32 via USB | Google Chrome, Microsoft Edge, Opera, Brave |
+
+> ⚠️ **Nota**: Navegadores como Firefox e Safari não possuem suporte nativo à Web Serial API.
+
+---
+
+## 🚀 Como Executar Localmente
+
+### Pré-requisitos
+- [Node.js](https://nodejs.org/) (v18+) ou [Bun](https://bun.sh/) (recomendado)
+
+### Instalação e Execução
 
 ```bash
+# 1. Clone o repositório
+git clone https://github.com/TelksBr/OdriveAPP.git
+cd OdriveAPP
+
+# 2. Instale as dependências
 bun install
+# ou: npm install
+
+# 3. Inicie o servidor de desenvolvimento
 bun run dev
+# ou: npm run dev
 ```
 
-Open the URL shown in the terminal (usually `http://localhost:5173`), connect the board via **Connect**, and follow **Setup** or use the workspace tabs.
+Abra a URL indicada no terminal (normalmente `http://localhost:5173`) no Chrome ou Edge.
 
-### Production build
+---
 
-```bash
-bun run build    # output in dist/
-bun run preview  # local preview of dist/
-```
+## 📦 Scripts Disponíveis
 
-## Project layout
+| Comando | Descrição |
+|---|---|
+| `bun run dev` | Inicia o servidor de desenvolvimento com suporte a HMR e PWA |
+| `bun run build` | Checagem de tipos TypeScript e compilação do bundle de produção |
+| `bun run preview` | Executa um servidor local para testar a pasta `dist/` |
+| `bun run typecheck` | Executa a validação do TypeScript (`tsc --noEmit`) |
+| `bun test` | Executa a suíte de testes unitários automatizados |
+| `bun run i18n:check` | Valida a paridade de chaves de tradução entre PT e EN |
+| `bun run firmware:check` | Valida a superfície de comandos e campos do firmware |
 
-```
+---
+
+## 📁 Arquitetura do Projeto
+
+```text
+OdriveAPP/
 ├── src/
-│   ├── app/              App shell, brand, routing, global state
-│   ├── features/         Workspaces (dashboard, tune, observe, hid, dfu, …)
-│   ├── domain/           Command registry, shared domain types
-│   ├── i18n/             PT / EN strings
-│   └── shared/           UI primitives
-├── public/               Static assets, 3D wheel model
-├── docs/
-│   ├── firmware-api.md   Serial/HID protocol reference (for contributors)
-│   ├── telemetry-hub.md  LAN hub + AC mod setup
-│   └── screenshots/
-├── tools/
-│   ├── wheelforge-hub/   Go hub — single exe, embedded overlay
-│   └── overlay-lan/      LAN overlay SPA source
-├── mods/assetto-corsa/   CSP Lua app (WheelForgeTelemetry)
-├── scripts/              Start-TelemetryHub.ps1 launcher
-├── index.html
-├── vite.config.ts
-└── package.json
+│   ├── app/              # Shell da aplicação, tema, roteamento e estado global
+│   ├── features/         # Módulos e workspaces:
+│   │   ├── dashboard/    # Cockpit, visualizador 3D e eixos analógicos
+│   │   ├── setup/        # Assistente de calibração passo-a-passo
+│   │   ├── inputs/       # Configuração e calibração de GPIOs e pedais
+│   │   ├── observe/      # Gráficos de telemetria e monitores em tempo real
+│   │   ├── hid/          # Laboratório de efeitos WebHID FFB
+│   │   ├── dfu/          # Flash e particionamento WebUSB STM32
+│   │   └── config/       # Catálogo de propriedades ODrive e FFB
+│   ├── domain/           # Tipos de domínio, pinagem GPIO e superfícies de comando
+│   ├── i18n/             # Dicionários de internacionalização (PT / EN)
+│   └── shared/           # Primitivas de UI (botões, cards, sliders, modais)
+├── public/               # Modelos 3D (volante GLB), texturas e manifest PWA
+├── docs/                 # Documentações técnicas de protocolo e capturas de tela
+│   ├── firmware-api.md   # Especificação do protocolo Serial/HID
+│   └── screenshots/      # Imagens demonstrativas do software
+├── tools/                # Utilitários auxiliares e telemetria LAN/Assetto Corsa
+└── vite.config.ts        # Configurações do Vite e plugin PWA
 ```
 
-## Features
+---
 
-- **Dashboard** — connection status, live metrics, 3D wheel viewer
-- **Setup / Calibration** — guided bring-up, motor & encoder cal, AS5047 tools
-- **Motor & ODrive** — full ODrive property editor
-- **Tune FFB** — wheel feel, effects, filters, torque advisor
-- **Inputs** — GPIO channels with live ADC bars, analog processor (rc12)
-- **Observe** — time-series charts, live monitor, CSV export; HID 1 kHz when connected
-- **Telemetry Hub (LAN + AC)** — Go binary (`dist/wheelforge-hub.exe`): LAN overlay + WebSocket/UDP for Assetto Corsa ([docs](docs/telemetry-hub.md))
-- **FFB Lab** — WebHID PID effect testing
-- **Maintain** — save (ODrive NVM + FFB EEPROM), profiles, DFU, reboot
-- **Command center** — searchable firmware commands
-- **Console** — raw serial access
+## 🔌 Compatibilidade de Hardware
 
-## Compatible hardware
+O WheelForge foi projetado para operar com controladoras Direct Drive executando o firmware **[Odrive-Wheel](https://github.com/eagabriel/Odrive-Wheel)** (v1.0.0-rc12+):
 
-WheelForge talks to boards running **[Odrive-Wheel](https://github.com/eagabriel/Odrive-Wheel)** firmware (v1.0.0-rc12+ recommended): MKS XDrive Mini, ODESC V4.2, and similar ODrive v3.6 clones with FFB HID.
+- **MKS XDrive Mini** (STM32F405 + DRV8301)
+- **ODESC V4.2**
+- Clones compatíveis com hardware ODrive v3.6 (24V / 56V) com suporte a FFB HID OpenFFBoard.
 
-Protocol reference for contributors: [`docs/firmware-api.md`](docs/firmware-api.md).
+---
 
-## Deploy (GitHub Pages)
+## 🤝 Créditos & Agradecimentos
 
-Push to `main` triggers `.github/workflows/pages.yml` (Bun install → Vite build → Pages).
+- **Eduardo Gabriel ([@eagabriel](https://github.com/eagabriel))**: Desenvolvimento do firmware Odrive-Wheel e criador da ferramenta original.
+- **OpenFFBoard**: Base para o protocolo FFB e emulação USB HID PID.
+- **ODrive Robotics**: Plataforma de controle de motores de alta precisão.
 
-## Development
+---
 
-| Script | Description |
-|--------|-------------|
-| `bun run dev` | Vite dev server + PWA dev SW |
-| `bun run build` | Typecheck + production bundle |
-| `bun run typecheck` | `tsc --noEmit` only |
-| `bun test` | Unit tests (protocol, torque, DFU plan) |
-| `bun run i18n:check` | PT/EN key parity + catalog PT labels |
-| `bun run preview` | Serve `dist/` locally |
-| `scripts/Build-TelemetryHub.ps1` | Build `dist/wheelforge-hub.exe` (Go) |
-| `scripts/Start-TelemetryHub.ps1` | Run hub (`-GameMode` for AC + COM6) |
-| `npm run hub:build-overlay` | Copy overlay-lan sources into legacy hub `public/` |
+## 📄 Licença
 
-Field definitions: `src/features/config/fieldCatalog.ts`.
-
-## License
-
-See [LICENSE](LICENSE).
+Este projeto é software livre sob os termos da licença [GPLv3](LICENSE).
