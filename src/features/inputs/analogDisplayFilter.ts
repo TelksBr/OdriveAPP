@@ -18,6 +18,13 @@ export const LINEAR_ANALOG_FILTER: AnalogFilterOptions = {
   deadbandPercent: 0.4,
 };
 
+export const FAST_ANALOG_FILTER: AnalogFilterOptions = {
+  rawAlpha: 0.55,
+  percentAlpha: 0.65,
+  percentHysteresis: 0.5,
+  deadbandPercent: 0.3,
+};
+
 export const CENTERED_ANALOG_FILTER: AnalogFilterOptions = {
   rawAlpha: 0.18,
   percentAlpha: 0.2,

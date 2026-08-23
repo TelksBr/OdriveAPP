@@ -111,14 +111,16 @@ function GpioInputDisplay({
 
   if (gpio.mode === '2') {
     return (
-        <LinearAnalogAxis
-          label={label}
-          value={gpio.raw}
-          min={gpio.min}
-          max={gpio.max}
-          tone="ok"
-          emptyLabel={emptyLabel}
-        />
+      <LinearAnalogAxis
+        label={label}
+        value={gpio.raw}
+        min={gpio.min}
+        max={gpio.max}
+        tone="ok"
+        smooth={true}
+        fast={true}
+        emptyLabel={emptyLabel}
+      />
     );
   }
 

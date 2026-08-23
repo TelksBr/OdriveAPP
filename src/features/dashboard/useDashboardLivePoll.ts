@@ -176,23 +176,38 @@ export function useDashboardLivePoll(
       return;
     }
 
-    const queue = gpioQueueRef.current;
-    if (queue.length === 0) {
-      return;
-    }
-
-    const gpio = queue[gpioQueueIndexRef.current % queue.length];
-    gpioQueueIndexRef.current += 1;
-
-    try {
-      const rawStr = await readField(fieldFor(`gpio.${gpio}.cur`));
-      if (generation !== generationRef.current) {
-        return;
+    const analogGpios = GPIO_LIST.filter((g) => config.gpios[g]?.mode === '2');
+    if (analogGpios.length > 0) {
+      for (const gpio of analogGpios) {
+        if (generation !== generationRef.current) {
+          break;
+        }
+        try {
+          const rawStr = await readField(fieldFor(`gpio.${gpio}.cur`));
+          gpioRawRef.current[gpio] = parseReplyNumber(rawStr);
+        } catch {
+          // keep previous raw sample
+        }
       }
-      gpioRawRef.current[gpio] = parseReplyNumber(rawStr);
-      setGpioInputs(gpioInputsFromConfig(config, gpioRawRef.current));
-    } catch {
-      // keep previous raw sample
+      if (generation === generationRef.current) {
+        setGpioInputs(gpioInputsFromConfig(config, gpioRawRef.current));
+      }
+    } else {
+      const queue = gpioQueueRef.current;
+      if (queue.length > 0) {
+        const gpio = queue[gpioQueueIndexRef.current % queue.length];
+        gpioQueueIndexRef.current += 1;
+        try {
+          const rawStr = await readField(fieldFor(`gpio.${gpio}.cur`));
+          if (generation !== generationRef.current) {
+            return;
+          }
+          gpioRawRef.current[gpio] = parseReplyNumber(rawStr);
+          setGpioInputs(gpioInputsFromConfig(config, gpioRawRef.current));
+        } catch {
+          // keep previous raw sample
+        }
+      }
     }
   }, []);
 

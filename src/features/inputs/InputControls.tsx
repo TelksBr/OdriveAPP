@@ -104,6 +104,7 @@ interface LinearAnalogAxisProps {
   max: number;
   tone?: Tone;
   smooth?: boolean;
+  fast?: boolean;
   emptyLabel: string;
 }
 
@@ -114,9 +115,10 @@ export function LinearAnalogAxis({
   max,
   tone = 'ok',
   smooth = true,
+  fast = false,
   emptyLabel,
 }: LinearAnalogAxisProps) {
-  const { barPercent, labelPercent } = useLinearAnalogDisplay(value, min, max, smooth);
+  const { barPercent, labelPercent } = useLinearAnalogDisplay(value, min, max, smooth, fast);
   const valueLabel = labelPercent === null ? emptyLabel : `${labelPercent}%`;
 
   return (

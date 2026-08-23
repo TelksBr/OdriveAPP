@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type RefObject } from 'react';
 import { toCenteredPercent, toLinearPercent } from './analogAxisMath';
 import {
   CenteredAnalogDisplayFilter,
+  FAST_ANALOG_FILTER,
+  LINEAR_ANALOG_FILTER,
   LinearAnalogDisplayFilter,
   type CenteredAnalogDisplay,
   type LinearAnalogDisplay,
@@ -12,8 +14,9 @@ export function useLinearAnalogDisplay(
   min: number,
   max: number,
   smooth: boolean,
+  fast = false,
 ): LinearAnalogDisplay {
-  const filterRef = useRef(new LinearAnalogDisplayFilter());
+  const filterRef = useRef(new LinearAnalogDisplayFilter(fast ? FAST_ANALOG_FILTER : LINEAR_ANALOG_FILTER));
   const [display, setDisplay] = useState<LinearAnalogDisplay>({
     barPercent: null,
     labelPercent: null,
