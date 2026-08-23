@@ -81,16 +81,6 @@ export async function pollErrorRegisters(locale: Locale): Promise<ErrorMap> {
 
 export async function pollDeviceInfo(): Promise<DeviceMap> {
   const next: DeviceMap = {};
-  try {
-    const [fwMaj, fwMin, fwRev] = await Promise.all([
-      readOdriveProp('fw_version_major'),
-      readOdriveProp('fw_version_minor'),
-      readOdriveProp('fw_version_revision'),
-    ]);
-    next.fw = [fwMaj, fwMin, fwRev].map((v) => parseLiveRaw(v) || '?').join('.');
-  } catch {
-    next.fw = '?';
-  }
 
   try {
     const [hwMaj, hwMin, hwVar] = await Promise.all([

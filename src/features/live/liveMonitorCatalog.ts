@@ -84,7 +84,6 @@ export const LIVE_MONITOR_GROUP_ORDER: LiveMonitorGroup[] = [
 ];
 
 export const DEVICE_INFO_FIELDS = [
-  { id: 'fw', labelKey: 'liveDeviceFw', paths: ['fw_version_major', 'fw_version_minor', 'fw_version_revision'] as const },
   { id: 'hw', labelKey: 'liveDeviceHw', paths: ['hw_version_major', 'hw_version_minor', 'hw_version_variant'] as const },
   { id: 'sn', labelKey: 'liveDeviceSerial', paths: ['serial_number'] as const },
   { id: 'ucl', labelKey: 'liveDeviceConfigLoaded', paths: ['user_config_loaded'] as const },
