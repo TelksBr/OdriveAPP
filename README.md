@@ -5,7 +5,10 @@
 [![Vite](https://img.shields.io/badge/Vite-8.0-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
 [![Bun](https://img.shields.io/badge/Bun-1.2-fbf0df?style=for-the-badge&logo=bun&logoColor=black)](https://bun.sh/)
 [![PWA Ready](https://img.shields.io/badge/PWA-Ready-FF5722?style=for-the-badge&logo=pwa&logoColor=white)](https://web.dev/progressive-web-apps/)
+[![Acessar App](https://img.shields.io/badge/Acessar_App-Online-success?style=for-the-badge&logo=cloudflare&logoColor=white)](https://odrivewheel.talkera.workers.dev/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](LICENSE)
+
+> 🚀 **Acesse online**: [**https://odrivewheel.talkera.workers.dev/**](https://odrivewheel.talkera.workers.dev/)
 
 **WheelForge** é uma Progressive Web App (PWA) de alto desempenho para configuração, ajuste fino, calibração e telemetria em tempo real para volantes Direct Drive FFB baseados no ecossistema **ODrive / Odrive-Wheel**.
 
