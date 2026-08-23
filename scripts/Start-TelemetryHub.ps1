@@ -51,10 +51,10 @@ Write-Host "  Binary:  $hubExe"
 Write-Host "  Local:   http://localhost:$Port/overlay/"
 Write-Host "  LAN:     http://${hostname}:$Port/overlay/"
 Write-Host "  Health:  http://localhost:$Port/health"
-Write-Host "  UDP AC:  127.0.0.1:45890"
-Write-Host "  WS AC:   ws://127.0.0.1:$Port/live"
+Write-Host "  UDP:     127.0.0.1:45890"
+Write-Host "  WS:      ws://127.0.0.1:$Port/live"
 if ($GameMode) {
-  Write-Host "  Mode:    serial-only (HID free for Assetto Corsa)" -ForegroundColor Yellow
+  Write-Host "  Mode:    serial-only (HID free for games)" -ForegroundColor Yellow
 }
 Write-Host ''
 

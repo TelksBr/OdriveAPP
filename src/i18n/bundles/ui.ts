@@ -64,8 +64,8 @@ export const uiPt = {
   observeBackgroundRecording: 'Gravando em segundo plano',
   observeBackgroundHint:
     'A aba do navegador está em segundo plano. O polling serial pode ficar mais lento (~1 Hz); com HID ligado ou overlay PiP aberto a taxa mantém-se melhor.',
-  hubLanTitle: 'Hub LAN / Assetto Corsa',
-  hubLanDescription: 'Servidor local para overlay na rede e telemetria UDP no AC. Com o jogo aberto: o hub usa a COM de controlo (CDC); a PWA não pode partilhar a mesma porta.',
+  hubLanTitle: 'Hub de Telemetria LAN',
+  hubLanDescription: 'Servidor local para overlay na rede local e telemetria WebSocket/UDP. Com o jogo aberto: o hub usa a COM de controlo (CDC); a PWA não pode partilhar a mesma porta.',
   hubLanChecking: 'A verificar hub…',
   hubLanOnline: 'Hub online ({source}, {hz} Hz)',
   hubLanOffline: 'Hub offline',
@@ -394,8 +394,8 @@ export const uiEn = {
   observeBackgroundRecording: 'Recording in background',
   observeBackgroundHint:
     'The browser tab is in the background. Serial polling may slow to ~1 Hz; with HID connected or the PiP overlay open, rate stays higher.',
-  hubLanTitle: 'LAN hub / Assetto Corsa',
-  hubLanDescription: 'Local server for LAN overlay and AC UDP telemetry. With the game running: the hub uses the control COM (CDC); the PWA cannot share the same port.',
+  hubLanTitle: 'LAN Telemetry Hub',
+  hubLanDescription: 'Local server for LAN overlay and WebSocket/UDP telemetry. With the game running: the hub uses the control COM (CDC); the PWA cannot share the same port.',
   hubLanChecking: 'Checking hub…',
   hubLanOnline: 'Hub online ({source}, {hz} Hz)',
   hubLanOffline: 'Hub offline',
