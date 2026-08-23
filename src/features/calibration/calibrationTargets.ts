@@ -27,6 +27,18 @@ export const as5047EncoderTargets: CalibrationTargetEntry[] = [
   { path: 'axis0.encoder.config.use_index', labelKey: 'calTargetEncUseIndex', group: 'encoder', match: { kind: 'bool', value: false } },
 ];
 
+export const mt6835EncoderTargets: CalibrationTargetEntry[] = [
+  { path: 'axis0.encoder.config.mode', labelKey: 'calTargetEncMode', group: 'encoder', match: { kind: 'exact', value: '261' } },
+  { path: 'axis0.encoder.config.cpr', labelKey: 'calTargetEncCpr', group: 'encoder', match: { kind: 'exact', value: '2097152' } },
+  {
+    path: 'axis0.encoder.config.abs_spi_cs_gpio_pin',
+    labelKey: 'calTargetEncCsPin',
+    group: 'encoder',
+    match: { kind: 'exact', value: '7' },
+  },
+  { path: 'axis0.encoder.config.use_index', labelKey: 'calTargetEncUseIndex', group: 'encoder', match: { kind: 'bool', value: false } },
+];
+
 export const incrementalEncoderTargets: CalibrationTargetEntry[] = [
   { path: 'axis0.encoder.config.mode', labelKey: 'calTargetEncMode', group: 'encoder', match: { kind: 'exact', value: '0' } },
   { path: 'axis0.encoder.config.cpr', labelKey: 'calTargetEncCpr', group: 'encoder', match: { kind: 'exact', value: '8192' } },
@@ -82,17 +94,19 @@ export const savedBootTargets: CalibrationTargetEntry[] = persistReadyBoot.map((
       : { kind: 'exact' as const, value: String(entry.value) },
 }));
 
-export type EncoderProfile = 'as5047' | 'incremental' | 'unknown';
+export type EncoderProfile = 'as5047' | 'mt6835' | 'incremental' | 'unknown';
 
 export function detectEncoderProfile(modeRaw: string | undefined): EncoderProfile {
   const mode = modeRaw?.trim().split(/\s+/)[0];
   if (mode === '257') return 'as5047';
+  if (mode === '261') return 'mt6835';
   if (mode === '0') return 'incremental';
   return 'unknown';
 }
 
 export function encoderTargetsForProfile(profile: EncoderProfile): CalibrationTargetEntry[] {
   if (profile === 'as5047') return as5047EncoderTargets;
+  if (profile === 'mt6835') return mt6835EncoderTargets;
   if (profile === 'incremental') return incrementalEncoderTargets;
   return [];
 }

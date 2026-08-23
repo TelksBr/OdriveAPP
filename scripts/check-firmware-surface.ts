@@ -23,6 +23,8 @@ function findCmdTablePath(): string | null {
   const env = process.env.ODRIVE_WHEEL_FIRMWARE;
   const candidates = [
     env,
+    resolve(process.cwd(), '../ODrive-Wheel-Forge/Odrive-Wheel/src/cmd_table.cpp'),
+    resolve('C:/Users/Telks/Desktop/Repo/ODrive-Wheel-Forge/Odrive-Wheel/src/cmd_table.cpp'),
     resolve(process.cwd(), '../../Odrive-Wheel/Odrive-Wheel/src/cmd_table.cpp'),
     resolve(process.cwd(), '../Odrive-Wheel/Odrive-Wheel/src/cmd_table.cpp'),
     resolve('C:/Users/Telks/Desktop/Odrive-Wheel/Odrive-Wheel/src/cmd_table.cpp'),

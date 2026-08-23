@@ -63,6 +63,7 @@ const encoderModeOptions: FieldOption[] = [
   { value: '258', label: 'SPI ABS CUI (ODrive stock)' },
   { value: '259', label: 'SPI ABS AEAT (ODrive stock)' },
   { value: '260', label: 'SPI ABS RLS (ODrive stock)' },
+  { value: '261', label: 'SPI ABS MagnTek (MT6835 / 21-bit)' },
 ];
 
 const motorTypeOptions: FieldOption[] = [
@@ -787,7 +788,15 @@ export const configGroups: ConfigGroup[] = [
         type: 'bool',
         protocol: 'openffboard',
         options: boolOptions,
-        description: 'Mirrors FFB direction in software. Enable if wheel pulls the wrong way. Does not fix wrong motor phase wiring.',
+        description: 'Inverts wheel axis position / HID IN direction for the game and app telemetry.',
+      },
+      {
+        path: 'axis.ffbinvert',
+        label: 'Invert FFB force',
+        type: 'bool',
+        protocol: 'openffboard',
+        options: boolOptions,
+        description: 'Inverts FFB force direction (game torque / HID OUT). Independent of wheel axis inversion.',
       },
       {
         path: 'axis.idlespring',

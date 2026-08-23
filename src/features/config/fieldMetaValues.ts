@@ -108,6 +108,7 @@ export const fieldDefaults: Record<string, string> = {
   'axis.maxtorque': '5',
   'axis.fxratio': '0.8',
   'axis.invert': 'false',
+  'axis.ffbinvert': 'false',
   'axis.idlespring': '0',
   'axis.axisdamper': '0',
   'axis.axisinertia': '0',

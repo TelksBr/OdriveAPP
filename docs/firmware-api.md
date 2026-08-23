@@ -194,7 +194,7 @@ Registo estático em `cmdtable[]` — **sem** registo dinâmico. Meta-comandos (
 |---------|-----|-----|------|-----------------|
 | `sys.lsmain` | ✓ | | | `"1:1:FFB Wheel (1 Axis)"` |
 | `sys.lsactive` | ✓ | | | Lista classes activas |
-| `sys.swver` | ✓ | | | `"1.17.0"` (compat Configurator) |
+| `sys.swver` | ✓ | | | SemVer (ex. `"1.0.0-dev"`, `>= 1.0.0`) |
 | `sys.hwtype` | ✓ | | | `"ODrive-Wheel"` |
 | `sys.heap` / `sys.heapfree` | ✓ | | | FreeRTOS heap livre |
 | `sys.uid` | ✓ | | | UID STM32 96-bit hex |
@@ -213,7 +213,14 @@ Registo estático em `cmdtable[]` — **sem** registo dinâmico. Meta-comandos (
 | `sys.reboot` | | | ✓ | Stub `OK` (não reboota — use `sr`) |
 | `sys.uptime` | ✓ | | | `HAL_GetTick()` ms |
 | `sys.ping` | ✓ | | | `pong` |
-| `sys.fxtest` | ✓ | | | Resumo FFB numa linha |
+| `sys.encraw` | ✓ | | ✓ | Snapshot de integridade SPI: `ok=N pty=N ef=N xfr=N last=HEX pos=N` |
+| `sys.magnet` | ✓ | | ✓ | Diagnóstico do sensor AS5047 (DIAAGC) |
+| `sys.mtstatus` | ✓ | | ✓ | Status MT6835: `boot=N hyst0=N overspeed=N weakfield=N undervolt=N cal=STATE` |
+| `sys.mtzero` | | | ✓ | Define zero na RAM do MT6835 (`OK` ou `FAIL` se armado) |
+| `sys.mteeprom` | | | ✓ | Grava na EEPROM do chip MT6835 (pausa 6.5s, não desligar por 6s) |
+| `sys.mtread` | | ✓ | | Lê registro hex do MT6835 (`sys.mtread=0x011`) |
+| `sys.mtwrite` | | ✓ | | Escreve registro hex do MT6835 (`sys.mtwrite=0x011 0x03`) |
+| `sys.fxtest` | ✓ | | | Resumo FFB numa linha (`ffb=1 pos=12.5 spd=0.0 trq=0.000 fx=2`) |
 | `sys.format`, `sys.flashdump` | ✓ | | ✓ | Stubs |
 | `sys.temp` | ✓ | | | Placeholder `25` |
 | `sys.signature`, `sys.debug` | ✓ | | | Stubs |
@@ -229,7 +236,8 @@ Registo estático em `cmdtable[]` — **sem** registo dinâmico. Meta-comandos (
 | `axis.range` | ✓ | ✓ | | graus (ex. 900) | ✓ |
 | `axis.maxtorque` | ✓ | ✓ | | Nm | ✓ |
 | `axis.fxratio` | ✓ | ✓ | | 0.0–1.0 | ✓ |
-| `axis.invert` | ✓ | ✓ | | 0/1 | ✓ (bit flags) |
+| `axis.invert` | ✓ | ✓ | | 0/1 (posição / HID IN) | ✓ (bit 0 `ADR_AXIS1_CONFIG`) |
+| `axis.ffbinvert` | ✓ | ✓ | | 0/1 (força FFB / HID OUT) | ✓ (bit 1 `ADR_AXIS1_CONFIG`) |
 | `axis.idlespring` | ✓ | ✓ | | 0–255 | ✓ |
 | `axis.axisdamper` | ✓ | ✓ | | 0–255 | ✓ |
 | `axis.axisinertia` | ✓ | ✓ | | 0–255 | ✓ |
@@ -244,12 +252,12 @@ Registo estático em `cmdtable[]` — **sem** registo dinâmico. Meta-comandos (
 | `axis.drvtype` | ✓ | ✓ | ✓ | Stub `"5:ODrive (M0)"` | — |
 | `axis.enctype` | ✓ | ✓ | ✓ | Stub `"1:ODrive Internal"` | — |
 | `axis.pos` | ✓ | | | Posição graus | — |
-| `axis.curtorque` | ✓ | | | Torque raw int | — |
-| `axis.curpos` | ✓ | | | Posição ° | — |
-| `axis.curspd` | ✓ | | | Velocidade °/s | — |
-| `axis.curaccel` | ✓ | ✓ | | Aceleração **°/s²** | — |
-| `axis.zhits` | ✓ | ✓ | | Pulsos Z aceites (N/A no AS5047) | — |
-| `axis.zglitch` | ✓ | ✓ | | IRQs Z rejeitados (N/A no AS5047) | — |
+| `axis.curtorque` | ✓ | | | Torque atual (-32767 a +32767) | — |
+| `axis.curpos` | ✓ | | | Posição graus (PLL filtrada, respeita `axis.invert`) | — |
+| `axis.curspd` | ✓ | | | Velocidade angular graus/s (PLL filtrada) | — |
+| `axis.curaccel` | ✓ | ✓ | | Aceleração angular **graus/s²** (100 Hz LPF) | — |
+| `axis.zhits` | ✓ | ✓ | | Pulsos Z aceites (N/A no AS5047/MT6835) | — |
+| `axis.zglitch` | ✓ | ✓ | | IRQs Z rejeitados (N/A no AS5047/MT6835) | — |
 
 **Naming vs OpenFFBoard upstream:** `axis.degrees` → `axis.range`; `axis.power` → `axis.maxtorque`.
 

@@ -93,7 +93,9 @@ export const guidanceEn: Record<string, string> = {
   'axis.fxratio':
     'Global FFB attenuation factor (0.0–1.0) applied after effects calculation but before ODrive. 1.0 = full torque. Use to globally reduce peak forces without changing motor current limits. Useful for endurance sessions or weaker arms. 0.75 is a common starting point.',
   'axis.invert':
-    'Mirrors FFB direction in software. Enable if wheel pulls right when it should pull left (or vice versa). Does NOT fix wrong motor phase wiring — for phase issues, physically swap two motor wires or use ODrive\'s motor phase inversion.',
+    'Inverts wheel axis position / visual direction (HID IN). Enable if turning right turns left in the game or app telemetry. Independent of FFB force inversion.',
+  'axis.ffbinvert':
+    'Inverts FFB force direction (HID OUT). Enable if FFB pulls in the opposite direction (e.g. into the wall during a turn). Independent of wheel position inversion.',
   'axis.idlespring':
     'Centering spring active when no game is sending effects (paused, on menus, before race start). 0 = wheel falls freely, 10–20 = gentle return-to-center, 50+ = strong self-centering. Prevents wheel from drooping to one side while idle.',
   'axis.axisdamper':
@@ -243,7 +245,9 @@ export const guidancePt: Record<string, string> = {
   'axis.fxratio':
     'Fator global de atenuação FFB (0,0–1,0) aplicado após cálculo de efeitos e antes do ODrive. 1,0 = torque total. Use para reduzir picos globalmente sem alterar limites de corrente do motor. Útil em sessões longas ou braços mais fracos. 0,75 é um ponto de partida comum.',
   'axis.invert':
-    'Espelha a direção do FFB no software. Habilite se o volante puxa para a direita quando deveria puxar para a esquerda (ou vice-versa). NÃO corrige fiação de fase errada — para problemas de fase, troque fisicamente dois fios do motor ou use inversão de fase do ODrive.',
+    'Inverte a direção/posição do volante reportada ao jogo e no app (HID IN). Habilite se girar para a direita fizer o volante virtual girar para a esquerda.',
+  'axis.ffbinvert':
+    'Inverte o sentido da força FFB (HID OUT). Habilite se o jogo puxar a força para o lado errado (ex.: puxar contra a curva). Independente da posição.',
   'axis.idlespring':
     'Mola de centralização ativa quando nenhum jogo envia efeitos (pausado, menus, antes da corrida). 0 = volante cai livremente, 10–20 = retorno suave ao centro, 50+ = centralização forte. Evita que o volante pendule para um lado em idle.',
   'axis.axisdamper':

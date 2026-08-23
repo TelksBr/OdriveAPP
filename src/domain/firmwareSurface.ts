@@ -40,6 +40,8 @@ export const FIRMWARE_STUB_COMMANDS = new Set([
   'sys.flashdump',
   'sys.vext',
   'sys.reboot',
+  'sys.mtread',
+  'sys.mtwrite',
   'axis.drvtype',
   'axis.enctype',
   'odrv.connected',
@@ -65,6 +67,9 @@ export const FIRMWARE_ACTION_COMMANDS = new Set([
   'sys.encraw',
   'sys.magnet',
   'sys.ping',
+  'sys.mtzero',
+  'sys.mteeprom',
+  'sys.mtstatus',
   'sys.fxtest',
   'sys.errorsclr',
   'sys.reboot',
@@ -104,6 +109,7 @@ export const FIRMWARE_OPENFFBOARD_COMMANDS: FirmwareCommand[] = [
   { cls: 'axis', cmd: 'maxtorque' },
   { cls: 'axis', cmd: 'fxratio' },
   { cls: 'axis', cmd: 'invert' },
+  { cls: 'axis', cmd: 'ffbinvert' },
   { cls: 'axis', cmd: 'drvtype' },
   { cls: 'axis', cmd: 'enctype' },
   { cls: 'axis', cmd: 'pos' },
@@ -160,6 +166,11 @@ export const FIRMWARE_OPENFFBOARD_COMMANDS: FirmwareCommand[] = [
   { cls: 'sys', cmd: 'ping' },
   { cls: 'sys', cmd: 'encraw' },
   { cls: 'sys', cmd: 'magnet' },
+  { cls: 'sys', cmd: 'mtread' },
+  { cls: 'sys', cmd: 'mtwrite' },
+  { cls: 'sys', cmd: 'mtzero' },
+  { cls: 'sys', cmd: 'mteeprom' },
+  { cls: 'sys', cmd: 'mtstatus' },
   { cls: 'sys', cmd: 'fxtest' },
   { cls: 'odrv', cmd: 'vbus' },
   { cls: 'odrv', cmd: 'connected' },
@@ -189,11 +200,13 @@ export function catalogPathToFirmwareKey(path: string): string | null {
 
 export function parseCmdTableSource(source: string): FirmwareCommand[] {
   const commands: FirmwareCommand[] = [];
+  const tableMatch = source.match(/const\s+CmdEntry\s+cmdtable\[\]\s*=\s*\{([\s\S]*?)\};/);
+  const target = tableMatch ? tableMatch[1]! : source;
   const re = /\{\s*"(\w+)"\s*,\s*"(\w+)"\s*,/g;
-  let match: RegExpExecArray | null = re.exec(source);
+  let match: RegExpExecArray | null = re.exec(target);
   while (match) {
     commands.push({ cls: match[1]!, cmd: match[2]! });
-    match = re.exec(source);
+    match = re.exec(target);
   }
   return commands;
 }

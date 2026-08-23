@@ -6,7 +6,7 @@ import { persistFfbEeprom } from '../board/fieldApply';
 import { markOdriveRamPending } from '../board/persistPending';
 import { serialService } from '../serial/SerialService';
 import { readAllFields } from '../board/unifiedSave';
-import { as5047EncoderTargets } from './calibrationTargets';
+import { as5047EncoderTargets, mt6835EncoderTargets } from './calibrationTargets';
 import { applyBootPreset } from './calibrationBootPresets';
 import { sleep } from '../../shared/sleep';
 
@@ -98,6 +98,28 @@ export function markDirtyPaths(
 
 export function applyAs5047Preset(dispatch: React.Dispatch<AppAction>): void {
   const specs = as5047EncoderTargets.map((entry) => {
+    if (entry.match.kind === 'bool') {
+      return { path: entry.path, value: entry.match.value };
+    }
+    if (entry.match.kind === 'exact') {
+      return { path: entry.path, value: entry.match.value };
+    }
+    return { path: entry.path, value: '' };
+  });
+  markDirtyPaths(
+    [
+      ...specs,
+      { path: 'axis0.encoder.config.pre_calibrated', value: false },
+    ],
+    dispatch,
+  );
+  dispatch({ type: 'set-field', path: 'axis0.encoder.is_ready', value: 'false', dirty: false });
+  dispatch({ type: 'set-field', path: 'axis0.encoder.config.pre_calibrated', value: 'false', dirty: true });
+  dispatch({ type: 'set-nvm-pending', pending: true });
+}
+
+export function applyMt6835Preset(dispatch: React.Dispatch<AppAction>): void {
+  const specs = mt6835EncoderTargets.map((entry) => {
     if (entry.match.kind === 'bool') {
       return { path: entry.path, value: entry.match.value };
     }
