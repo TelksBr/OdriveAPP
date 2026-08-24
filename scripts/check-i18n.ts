@@ -1,3 +1,4 @@
+import process from 'node:process';
 import { messages } from '../src/i18n/messages.ts';
 import { flatFields } from '../src/features/config/fieldCatalog.ts';
 
