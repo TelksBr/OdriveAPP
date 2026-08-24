@@ -150,7 +150,7 @@ OdriveAPP/
 
 ## 🔌 Compatibilidade de Hardware
 
-O WheelForge foi projetado para operar com controladoras Direct Drive executando o firmware **[Odrive-Wheel](https://github.com/eagabriel/Odrive-Wheel)** (v1.0.0-rc12+):
+O WheelForge foi projetado para operar com controladoras Direct Drive executando o firmware **[ODrive-Wheel-Forge](https://github.com/TelksBr/ODrive-Wheel-Forge)** (v1.0.0+):
 
 - **MKS XDrive Mini** (STM32F405 + DRV8301)
 - **ODESC V4.2**
@@ -160,7 +160,7 @@ O WheelForge foi projetado para operar com controladoras Direct Drive executando
 
 ## 🤝 Créditos & Agradecimentos
 
-- **Eduardo Gabriel ([@eagabriel](https://github.com/eagabriel))**: Desenvolvimento do firmware Odrive-Wheel e criador da ferramenta original.
+- **Telks ([@TelksBr](https://github.com/TelksBr))**: Manutenção e desenvolvimento do firmware ODrive-Wheel-Forge e WheelForge PWA.
 - **OpenFFBoard**: Base para o protocolo FFB e emulação USB HID PID.
 - **ODrive Robotics**: Plataforma de controle de motores de alta precisão.
 

@@ -5,7 +5,7 @@ WheelForge is a Progressive Web App for configuring FFB wheel hardware
 running Odrive-Wheel-compatible firmware.
 
 Firmware is maintained separately at:
-https://github.com/eagabriel/Odrive-Wheel
+https://github.com/TelksBr/ODrive-Wheel-Forge
 
 Unless otherwise noted in individual source files, this web application is
 distributed under the GNU General Public License v3.0.

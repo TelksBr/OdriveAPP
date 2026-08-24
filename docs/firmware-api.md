@@ -1,13 +1,12 @@
-# WheelForge — protocol reference (Odrive-Wheel firmware)
+# WheelForge — protocol reference (ODrive-Wheel-Forge firmware)
 
-Referência do protocolo **Odrive-Wheel** (firmware FFB + ODrive) para manutenção desta PWA.
+Referência do protocolo **ODrive-Wheel-Forge** (firmware FFB + ODrive v1.0.0+) para manutenção desta PWA.
 
 **Público:** desenvolvedores da web app, integradores serial/HID, e quem mantém `fieldCatalog.ts`.
 
 **Referências cruzadas:**
 - App web: `src/`
-- Firmware upstream: [github.com/eagabriel/Odrive-Wheel](https://github.com/eagabriel/Odrive-Wheel)
-- Configurador HTML legado: incluído no repositório upstream (`tools/odrive-wheel.html`)
+- Firmware: [github.com/TelksBr/ODrive-Wheel-Forge](https://github.com/TelksBr/ODrive-Wheel-Forge)
 
 ---
 

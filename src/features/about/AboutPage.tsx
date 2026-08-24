@@ -3,14 +3,10 @@ import { translate } from '../../i18n/messages';
 import { Card, SectionHeader } from '../../shared/ui';
 import { AppIcon } from '../../shared/ui/AppIcon';
 
-import { FIRMWARE_UPSTREAM_URL, LEGACY_HTML_TOOL_URL } from '../../app/brand';
+import { FIRMWARE_REPO_URL, APP_REPO_URL, TELEGRAM_URL } from '../../app/brand';
 
-const ORIGINAL_REPO = FIRMWARE_UPSTREAM_URL;
-const HOSTED_HTML = LEGACY_HTML_TOOL_URL;
 const ODRIVE_REPO = 'https://github.com/odriverobotics/ODrive';
 const OPENFF_REPO = 'https://github.com/Ultrawipf/OpenFFBoard';
-const SPONSOR_URL = 'https://github.com/sponsors/eagabriel';
-const TELEGRAM_URL = 'https://t.me/telks13';
 
 export function AboutPage() {
   const { state } = useAppState();
@@ -29,27 +25,21 @@ export function AboutPage() {
           <p className="about-lead">{translate(locale, 'aboutCreditsBody')}</p>
           <ul className="about-links">
             <li>
-              <a href={ORIGINAL_REPO} target="_blank" rel="noreferrer" className="about-link-with-icon">
+              <a href={FIRMWARE_REPO_URL} target="_blank" rel="noreferrer" className="about-link-with-icon">
                 <AppIcon id="github-icon" size={16} />
                 {translate(locale, 'aboutCreditsFirmware')}
               </a>
             </li>
             <li>
-              <a href={`${ORIGINAL_REPO}/blob/main/Odrive-Wheel/tools/odrive-wheel.html`} target="_blank" rel="noreferrer" className="about-link-with-icon">
-                <AppIcon id="documentation-icon" size={16} />
-                {translate(locale, 'aboutCreditsHtmlTool')}
+              <a href={APP_REPO_URL} target="_blank" rel="noreferrer" className="about-link-with-icon">
+                <AppIcon id="github-icon" size={16} />
+                {translate(locale, 'aboutCreditsAppRepo')}
               </a>
             </li>
             <li>
-              <a href={HOSTED_HTML} target="_blank" rel="noreferrer" className="about-link-with-icon">
+              <a href={`${APP_REPO_URL}/blob/main/docs/firmware-api.md`} target="_blank" rel="noreferrer" className="about-link-with-icon">
                 <AppIcon id="documentation-icon" size={16} />
-                {translate(locale, 'aboutCreditsHosted')}
-              </a>
-            </li>
-            <li>
-              <a href={SPONSOR_URL} target="_blank" rel="noreferrer" className="about-link-with-icon">
-                <AppIcon id="social-icon" size={16} />
-                {translate(locale, 'aboutCreditsSponsor')} ↗
+                {translate(locale, 'aboutCreditsDocumentation')}
               </a>
             </li>
           </ul>
