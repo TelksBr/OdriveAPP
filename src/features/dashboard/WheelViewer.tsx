@@ -187,7 +187,7 @@ function WheelMesh({
     if (!groupRef.current) return;
     const deg = positionDegRef.current;
     if (deg === null) return;
-    groupRef.current.rotation.z = (deg * Math.PI) / 180;
+    groupRef.current.rotation.z = (-deg * Math.PI) / 180;
   });
 
   if (scale === null) return null;
