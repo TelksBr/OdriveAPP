@@ -6,6 +6,7 @@ export const uiPt = {
   refreshInterval5s: '5s',
   localePt: 'Português (PT)',
   localeEn: 'English (EN)',
+  localeEs: 'Español (ES)',
   configTitleFfb: 'Configurador FFB',
   configTitleOdrive: 'Configurador ODrive',
   configDescription: 'Pesquise, filtre, leia e escreva campos da placa sem perder detalhes do protocolo.',
@@ -334,6 +335,7 @@ export const uiEn = {
   refreshInterval5s: '5s',
   localePt: 'Português (PT)',
   localeEn: 'English (EN)',
+  localeEs: 'Español (ES)',
   configTitleFfb: 'FFB configurator',
   configTitleOdrive: 'ODrive configurator',
   configDescription: 'Search, filter, read, and write board fields without losing protocol details.',
@@ -654,3 +656,5 @@ export const uiEn = {
   commandIntegrityConfirm:
     'Calibration integrity would block Save. Run this command anyway?\n\n{command}',
 };
+
+export { uiEs } from './uiEs';

@@ -159,3 +159,84 @@ export const commandsEn: Record<string, string> = {
   'command.axis-params.label': 'FFB axis params (M)',
   'command.axis-params.desc': 'ASCII M — maxtorque, fxratio, range and effective Nm.',
 };
+
+export const commandsEs: Record<string, string> = {
+  'command.clear-errors.label': 'Limpiar errores',
+  'command.clear-errors.desc':
+    'Limpia errores persistentes de ODrive antes de setup, calibración o lazo cerrado.',
+  'command.idle.label': 'Idle (Reposo)',
+  'command.idle.desc': 'Desarma el eje 0 de inmediato.',
+  'command.closed-loop.label': 'Closed loop (Lazo cerrado)',
+  'command.closed-loop.desc': 'Arma el eje 0 en CLOSED_LOOP_CONTROL.',
+  'command.motor-calibration.label': 'Calibración del motor',
+  'command.motor-calibration.desc': 'Mide la resistencia y la inductancia de fase del motor.',
+  'command.encoder-offset-calibration.label': 'Calibración de offset del encoder',
+  'command.encoder-offset-calibration.desc':
+    'Alinea el desfase de fase del encoder. Centra el volante mecánicamente antes.',
+  'command.full-calibration.label': 'Secuencia completa de calibración',
+  'command.full-calibration.desc':
+    'Motor + encoder en una sola secuencia (estado 3). No ejecutar con el volante montado — el eje gira libre.',
+  'command.encoder-index-search.label': 'Búsqueda de índice Z',
+  'command.encoder-index-search.desc':
+    'Busca el pulso Z. Solo con encoder incremental + Z; N/A en AS5047 MKS.',
+  'command.encoder-dir-find.label': 'Detectar dirección',
+  'command.encoder-dir-find.desc': 'Detecta automáticamente la dirección de conteo del encoder.',
+  'command.lockin-spin.label': 'Giro sensorless (Lockin)',
+  'command.lockin-spin.desc':
+    'Giro en lazo abierto sensorless (estado 9). No es la vía normal para volante MKS con AS5047.',
+  'command.homing.label': 'Homing',
+  'command.homing.desc':
+    'Homing ODrive (estado 11). Requiere fin de carrera — esta base MKS no lo tiene.',
+  'command.zero-wheel.label': 'Centrar volante (Zero)',
+  'command.zero-wheel.desc':
+    'Centro FFB: axis.zeroenc! guarda zeroofs en RAM. Guarda con sys.save! (EEPROM FFB S1+S2), no con ss.',
+  'command.anticogging-calibration.label': 'Calibración anticogging',
+  'command.anticogging-calibration.desc':
+    'Ejecuta axis.anticogcal! (alias ASCII Y). El mapa se guarda con ss (NVM ODrive), no con sys.save!.',
+  'command.save-ffb.label': 'Guardar EEPROM FFB',
+  'command.save-ffb.desc':
+    'Guarda FFB, GPIO, filtros, vbusdiv y zeroofs en la EEPROM emulada (flash S1+S2). Sin reiniciar.',
+  'command.save-odrive.label': 'Guardar NVM ODrive',
+  'command.save-odrive.desc':
+    'Guarda motor/encoder/controlador/inicio en la NVM ODrive (flash S10+S11) y reinicia. No es la EEPROM FFB.',
+  'command.reboot.label': 'Reiniciar firmware',
+  'command.reboot.desc':
+    'Reinicio real (sr). sys.reboot! es un stub en este firmware y no reinicia.',
+  'command.reboot-dfu.label': 'Reiniciar en modo DFU',
+  'command.reboot-dfu.desc': 'Entra al bootloader ROM de STM32 para flashear por el navegador.',
+  'command.ffb-diag.label': 'Resumen de diagnóstico FFB',
+  'command.ffb-diag.desc': 'ASCII d — contadores FFB compactos.',
+  'command.ffb-diag-detail.label': 'Detalle de diagnóstico FFB',
+  'command.ffb-diag-detail.desc': 'ASCII D — desglose HID OUT.',
+  'command.torque-diag.label': 'Diagnóstico de par (torque)',
+  'command.torque-diag.desc': 'ASCII T — último par HID y Nm.',
+  'command.eeprom-dump.label': 'Volcado EEPROM FFB',
+  'command.eeprom-dump.desc': 'Inspecciona páginas de la EEPROM emulada y último resultado de lectura/escritura.',
+  'command.save-stat.label': 'Estado del último guardado',
+  'command.save-stat.desc': 'sys.savestat? — contadores de escrituras/errores del último sys.save!.',
+  'command.enc-raw.label': 'Contadores SPI del encoder',
+  'command.enc-raw.desc': 'sys.encraw! — lecturas válidas, errores de paridad/CRC8 y última posición bruta.',
+  'command.magnet-diag.label': 'Estado del imán AS5047',
+  'command.magnet-diag.desc': 'sys.magnet! — DIAAGC (AGC, banderas de campo magnético, salud del imán).',
+  'command.mt-status.label': 'Estado MT6835',
+  'command.mt-status.desc': 'sys.mtstatus? — CRC de inicio, histéresis, sobrevelocidad, campo débil y autocal.',
+  'command.mt-zero.label': 'Poner a cero MT6835',
+  'command.mt-zero.desc': 'sys.mtzero! — establece posición actual como cero en MT6835 (volátil hasta sys.mteeprom!).',
+  'command.mt-eeprom.label': 'Grabar EEPROM MT6835',
+  'command.mt-eeprom.desc': 'sys.mteeprom! — guarda registros en la EEPROM de MT6835. Pausa lecturas 6,5 s. ¡No desconectar por 6 s!',
+  'command.ping.label': 'Ping FFB',
+  'command.ping.desc': 'sys.ping? — responde pong. Confirma el parser FFB, no el ASCII ODrive.',
+  'command.fxtest.label': 'Resumen FFB (sys.fxtest)',
+  'command.fxtest.desc': 'sys.fxtest? — una línea de estado FFB de la capa slim.',
+  'command.eeprom-test.label': 'Prueba round-trip EEPROM',
+  'command.eeprom-test.desc': 'sys.eetest! — prueba de lectura/escritura en EEPROM FFB. No formatea.',
+  'command.eeprom-format.label': 'Formatear EEPROM FFB',
+  'command.eeprom-format.desc':
+    'sys.eeformat! — formatea S1+S2. No borra la NVM ODrive. Para borrar ambas memorias usa se.',
+  'command.bus-peaks.label': 'Picos de corriente/voltaje',
+  'command.bus-peaks.desc': 'ASCII I — picos Ibus/motor/VBUS desde el último R.',
+  'command.reset-peaks.label': 'Restablecer picos',
+  'command.reset-peaks.desc': 'ASCII R — restablece contadores de picos usados por I.',
+  'command.axis-params.label': 'Parámetros del eje FFB (M)',
+  'command.axis-params.desc': 'ASCII M — maxtorque, fxratio, range y Nm efectivo.',
+};

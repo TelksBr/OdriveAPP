@@ -301,3 +301,147 @@ export const guidancePt: Record<string, string> = {
   'sys.vbusdiv':
     '⚠ Parâmetro de hardware — altere só se a placa usar divisor VBUS não padrão. Padrão Odrive-Wheel / MKS XDrive Mini: 19. Valor errado: leituras de tensão, rampa de freio e proteção de sobretensão ficam calibrados incorretamente.',
 };
+
+export const guidanceEs: Record<string, string> = {
+  // PSU / Freno
+  'config.dc_bus_overvoltage_trip_level':
+    'Configura 2–4 V por encima del voltaje nominal de la fuente. Para fuente de 48 V: 52–54 V es seguro. Demasiado bajo = disparos falsos al acelerar; demasiado alto = riesgo de daños a condensadores y FETs durante la regeneración.',
+  'config.dc_bus_undervoltage_trip_level':
+    'Configura ligeramente por debajo del voltaje mínimo de la fuente. Para LiPo 10S: ~34 V. Para fuente de laboratorio de 48 V: ~40 V.',
+  'config.brake_resistance':
+    'Debe coincidir exactamente con el valor físico de la resistencia de freno (medir con multímetro). Valores comunes: 0.5 Ω, 2 Ω, 8 Ω. Si no hay resistencia = poner enable_brake_resistor en false.',
+  'config.enable_brake_resistor':
+    'Activar cuando haya una resistencia de freno física conectada. Sin ella, la energía de regeneración carga el bus DC hasta el corte por sobrevoltaje.',
+  'config.dc_bus_overvoltage_ramp_start':
+    'Voltaje donde el duty cycle de la resistencia de freno comienza a subir. Debe ser ≤ ramp_end y < overvoltage_trip_level. Ejemplo: nominal 48 V → start 50 V → end 52 V → trip 54 V.',
+  'config.dc_bus_overvoltage_ramp_end':
+    'Voltaje donde la resistencia de freno alcanza el 100% de duty. Configura ramp_end = trip_level − 1 V para frenado completo justo antes del disparo.',
+  'config.dc_max_positive_current':
+    'Limita la corriente demandada de la fuente. Configura según la corriente nominal de la fuente o el límite seguro del motor.',
+  'config.dc_max_negative_current':
+    'Limita la corriente de regeneración devuelta a la fuente. Mantener negativa (ej.: −5). Para fuentes de laboratorio sin regeneración usa −0.1 para evitar daños.',
+
+  // Eje
+  'axis0.current_state':
+    'Estado en tiempo real del eje — leer con r axis0.current_state. 8 = closed-loop (FFB activo), 1 = IDLE (sin par).',
+  'axis0.requested_state':
+    'Comando de escritura (w axis0.requested_state N). ODrive vuelve a 0 cuando la transición termina. Valores clave: 1 = IDLE, 3 = calibración completa, 8 = closed-loop.',
+  'axis0.config.startup_closed_loop_control':
+    'Si es true, ODrive entra en lazo cerrado automáticamente tras el inicio. Habilitar solo tras calibrar motor y encoder con pre_calibrated.',
+  'axis0.config.startup_motor_calibration':
+    'Ejecuta calibración R/L del motor en cada inicio cuando es true. Tras calibrar con éxito y guardar, poner false y activar motor.pre_calibrated.',
+  'axis0.config.startup_encoder_offset_calibration':
+    'Ejecuta calibración de offset del encoder en cada inicio cuando es true. Tras calibrar y guardar, poner false y activar encoder.pre_calibrated.',
+  'axis0.config.startup_encoder_index_search':
+    'Busca el índice Z en el inicio. Solo para encoders incrementales con índice conectado.',
+  'config.max_regen_current':
+    'Limita la corriente de regeneración al bus DC. Poner en 0 para fuentes que no admiten retorno de corriente.',
+
+  // Motor
+  'axis0.motor.config.current_lim':
+    '⚠ Crítico de seguridad. Mayor corriente = mayor par = más calor. Configura en o por debajo de la corriente nominal continua del motor. Rango FFB típico: 8–20 A.',
+  'axis0.motor.config.motor_type':
+    'Debe coincidir con el motor físico. BLDC de alta corriente (0) para la mayoría de volantes direct drive.',
+  'axis0.motor.config.pole_pairs':
+    '⚠ Debe ser exacto. Cuenta los imanes del rotor y divide por 2. Ejemplo: 14 imanes = 7 pares de polos. Un valor incorrecto causa fallo de calibración o movimientos bruscos.',
+  'axis0.motor.config.calibration_current':
+    'Corriente aplicada durante la medición de resistencia/inductancia. Debe ser el 20–30% de current_lim.',
+  'axis0.motor.config.resistance_calib_max_voltage':
+    'Voltaje máximo durante la medición de resistencia de fase. Por defecto 4 V es suficiente.',
+  'axis0.motor.config.torque_constant':
+    '⚠ Crítico para la precisión del par. Kt = par_nominal_Nm / corriente_nominal_A o Kt ≈ 8.27 / motor_kv.',
+  'axis0.motor.config.current_control_bandwidth':
+    'Ancho de banda del lazo de corriente en rad/s. Mayor = respuesta de par más rápida. Valor inicial típico: 100–300.',
+  'axis0.motor.config.current_control_deadband':
+    'Suprime ruidos de baja amplitud en el lazo PI de corriente. 0 = respuesta más nítida.',
+  'axis0.motor.config.pre_calibrated':
+    'Omite la calibración del motor al inicio. Poner en true solo tras una calibración exitosa guardada en NVM.',
+  'axis0.motor.config.requested_current_range':
+    'Rango de lectura ADC del sensor de corriente en amperios. Configurar ligeramente por encima de current_lim.',
+
+  // Encoder
+  'axis0.encoder.config.mode':
+    'Incremental (0) para encoders estándar A/B. Hall (1) para sensores Hall. SPI para absolutos (AS5047, MT6835).',
+  'axis0.encoder.config.cpr':
+    '⚠ Pulsos por revolución. AS5047 = 16384 (14 bits). MT6835 = 16384 a 65536. Encoders ópticos = 4 × líneas.',
+  'axis0.encoder.config.bandwidth':
+    'Filtro de seguimiento de velocidad del encoder en rad/s. Valor recomendado para FFB: 1000–3000.',
+  'axis0.encoder.config.calib_range':
+    'Rango de movimiento durante la calibración de offset del encoder. 0.02 es el valor estándar.',
+  'axis0.encoder.config.calib_scan_distance':
+    'Distancia angular en radianes eléctricos durante el barrido de calibración. 16 × π es el estándar.',
+  'axis0.encoder.config.pre_calibrated':
+    'Omite la calibración del encoder en el arranque. Poner true solo tras alinear offset con éxito y guardar en NVM.',
+
+  // Controlador
+  'axis0.controller.config.control_mode':
+    'CONTROL_MODE_TORQUE_CONTROL (1) es obligatorio para operación Direct Drive FFB.',
+  'axis0.controller.config.input_mode':
+    'INPUT_MODE_PASSTHROUGH (1) para enviar setpoints directos de par desde el puente FFB sin rampas intermedias.',
+  'axis0.controller.config.torque_lim':
+    'Límite de seguridad de par en Nm aplicado por el controlador ODrive. Debe ser ≥ axis.maxtorque.',
+
+  // Volante FFB
+  'axis.maxtorque':
+    'Par máximo entregado por el volante FFB en Nm (al 100% de fuerza del simulador). No exceder el límite físico del motor.',
+  'axis.fxratio':
+    'Multiplicador de intensidad de efectos FFB (0.0 a 2.0). 1.0 = 100% de la fuerza configurada.',
+  'axis.range':
+    'Rango total de rotación del volante en grados (ej.: 900° = ±450°, 540° = ±270°, 1080° = ±540°).',
+  'axis.invert':
+    'Invierte la dirección del ángulo reportado a Windows/juegos (HID IN). 0 = normal, 1 = invertido.',
+  'axis.invertforce':
+    'Invierte la dirección de la fuerza FFB (HID OUT). Activar si el simulador empuja la fuerza en sentido contrario.',
+  'axis.idlespring':
+    'Fuerza de centrado activa cuando no hay efectos de juego (menús, pausa). 0 = suelto, 10–20 = centrado suave.',
+  'axis.axisdamper':
+    'Amortiguación constante proporcional a la velocidad. Simula peso hidráulico o columna de dirección pesada.',
+  'axis.axisinertia':
+    'Inercia constante aplicada a la aceleración del volante. Añade peso realista sin perder agilidad.',
+  'axis.axisfriction':
+    'Fricción mecánica constante en todas las velocidades.',
+  'axis.esgain':
+    'Rigidez del tope electrónico de fin de carrera cuando el volante supera axis.range.',
+  'axis.esdamp':
+    'Amortiguación en el tope electrónico para absorber el rebote al golpear el límite virtual.',
+  'axis.maxtorquerate':
+    'Limitador de tasa de cambio de par (Nm/ms). 0 = respuesta directa instantánea.',
+  'axis.expo':
+    'Curva de sensibilidad no lineal en la posición reportada por el volante. 0 = lineal.',
+  'axis.exposcale':
+    'Factor de escala para la curva exponencial.',
+
+  // Efectos FFB
+  'fx.master':
+    'Ganancia maestra global aplicada a todos los efectos FFB antes de axis.fxratio. 255 = 100%.',
+  'fx.spring':
+    'Ganancia para efectos de muelle (spring) del juego. 255 = escala completa.',
+  'fx.damper':
+    'Ganancia para efectos de amortiguación (damper) del juego. 255 = escala completa.',
+  'fx.friction':
+    'Ganancia para efectos de fricción (friction) del juego. 255 = escala completa.',
+  'fx.inertia':
+    'Ganancia para efectos de inercia (inertia) del juego. 255 = escala completa.',
+
+  // GPIO
+  'gpio.mode':
+    'GPIO 1–4 = PA0–PA3 (ADC): 0 desactivado, 1 botón HID, 2 eje analógico HID, 3 centrado de volante. GPIO 6 = PB2 solo digital.',
+  'gpio.idx':
+    'Índice HID. Botón 0–63. Eje analógico 0–3 (Rx/Ry/Rz/Slider) en GPIO 1–4.',
+  'gpio.invert':
+    'Invierte la entrada. Botones: pulsado = 0. Analógico: invierte el recorrido. Guardar con sys.save! (EEPROM FFB).',
+  'gpio.amin':
+    'Valor ADC en el mínimo mecánico (GPIO 1–4 modo analógico).',
+  'gpio.amax':
+    'Valor ADC en el máximo mecánico (GPIO 1–4 modo analógico).',
+  'fx.filterFreq':
+    'Frecuencia de corte paso bajo en Hz (1–500). Por defecto CF del firmware: 200 Hz.',
+  'fx.filterQ':
+    'Factor Q del filtro biquad como entero ×0.01. 70 = Q 0.70 (Butterworth). Rango 1–500.',
+  'field.guidance.fallback':
+    'FFB: Aplicar guarda en EEPROM (sys.save!). ODrive: Aplicar guarda solo en RAM — usa Guardar en barra superior para NVM y reinicio.',
+
+  // Sistema
+  'sys.vbusdiv':
+    '⚠ Parámetro de hardware — modificar solo si la placa usa un divisor VBUS no estándar. Por defecto MKS XDrive Mini: 19.',
+};

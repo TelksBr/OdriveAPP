@@ -158,14 +158,16 @@ export function compareTarget(current: string | undefined, match: TargetMatch): 
   }
 }
 
-export function formatTargetValue(match: TargetMatch, locale: 'pt' | 'en'): string {
+import type { Locale } from '../../i18n/messages';
+
+export function formatTargetValue(match: TargetMatch, locale: Locale): string {
   switch (match.kind) {
     case 'exact':
       return match.value;
     case 'bool':
-      return match.value ? (locale === 'pt' ? 'true' : 'true') : 'false';
+      return match.value ? 'true' : 'false';
     case 'present':
-      return locale === 'pt' ? 'medido (NVM)' : 'measured (NVM)';
+      return locale === 'pt' ? 'medido (NVM)' : locale === 'es' ? 'medido (NVM)' : 'measured (NVM)';
     case 'status':
       return match.expect;
     default:

@@ -947,3 +947,5 @@ export const calibrationEn = {
   calAs5047PresetStaged:
     'AS5047 preset staged in dirty — invalidates encoder cal. Save, run encoder cal (7), then boot preset and Save.',
 };
+
+export { calibrationEs } from './calibrationEs';

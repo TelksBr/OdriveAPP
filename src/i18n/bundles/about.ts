@@ -49,3 +49,28 @@ export const aboutEn = {
     'ODrive (MIT), OpenFFBoard and ODrive-Wheel-Forge code (GPLv3). Both firmware and web app are open source projects, no vendor lock-in.',
 };
 
+export const aboutEs = {
+  tabAbout: 'Sobre el proyecto',
+  tabAboutDescription: 'Créditos, licencias y contacto',
+  aboutEyebrow: 'Créditos & Visión',
+  aboutTitle: 'WheelForge',
+  aboutSubtitle:
+    'PWA para configuración, calibración y telemetría de bases Direct Drive FFB con firmware ODrive-Wheel-Forge — alta precisión, baja latencia y control total.',
+  aboutCreditsTitle: 'Firmware ODrive-Wheel-Forge',
+  aboutCreditsBody:
+    'El firmware ODrive-Wheel-Forge combina el control de motor FOC de ODrive v0.5.6 con la pila completa de Force Feedback (FFB) de OpenFFBoard para la placa MKS XDrive Mini (STM32F405). Desarrollado y mantenido por Telks.',
+  aboutCreditsFirmware: 'Firmware ODrive-Wheel-Forge (GitHub)',
+  aboutCreditsAppRepo: 'WheelForge PWA (GitHub)',
+  aboutCreditsDocumentation: 'Documentación del Protocolo',
+  aboutContactTitle: 'Comunidad & Contacto',
+  aboutContactBody: 'Dudas, sugerencias de nuevas funciones y soporte directo:',
+  aboutTelegram: 'Telegram @telks13',
+  aboutLineageTitle: 'Arquitectura y Linaje Técnico',
+  aboutLineageOdrive: 'ODrive v0.5.6 — control de motor FOC de alto rendimiento, encoder y protocolo ASCII.',
+  aboutLineageOpenFF: 'OpenFFBoard — pila FFB: HidFFB, EffectsCalculator, efectos PID e informes HID @ 1 kHz.',
+  aboutLineageBridge: 'Puente FFB Direct Drive en firmware — traducción continua de par HID OUT → consigna de corriente del motor.',
+  aboutLicenseTitle: 'Licencias Open Source',
+  aboutLicenseBody:
+    'ODrive (MIT), OpenFFBoard y código ODrive-Wheel-Forge (GPLv3). Tanto el firmware como la aplicación web son proyectos de código abierto.',
+};
+

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import type { Locale } from '../../i18n/messages';
-import { FlagBR, FlagUS } from './FlagIcons';
+import { FlagBR, FlagUS, FlagES } from './FlagIcons';
 
 interface LanguageSelectorProps {
   locale: Locale;
@@ -10,6 +10,7 @@ interface LanguageSelectorProps {
 const LANGUAGES: { id: Locale; label: string; code: string; Flag: typeof FlagBR }[] = [
   { id: 'pt', label: 'Português', code: 'PT', Flag: FlagBR },
   { id: 'en', label: 'English', code: 'EN', Flag: FlagUS },
+  { id: 'es', label: 'Español', code: 'ES', Flag: FlagES },
 ];
 
 export function LanguageSelector({ locale, onChange }: LanguageSelectorProps) {

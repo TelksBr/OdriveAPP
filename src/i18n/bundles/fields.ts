@@ -445,3 +445,5 @@ function buildFieldsEnFromCatalog(): Record<string, string> {
 }
 
 export const fieldsEn = buildFieldsEnFromCatalog();
+
+export { fieldsEs } from './fieldsEs';

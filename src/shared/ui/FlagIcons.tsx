@@ -81,3 +81,29 @@ export function FlagUS({ size = 18, className = '' }: FlagProps) {
     </svg>
   );
 }
+
+export function FlagES({ size = 18, className = '' }: FlagProps) {
+  return (
+    <svg
+      width={size}
+      height={Math.round((size * 5) / 7)}
+      viewBox="0 0 750 500"
+      className={`flag-icon flag-es ${className}`}
+      style={{
+        borderRadius: '2px',
+        display: 'inline-block',
+        verticalAlign: 'middle',
+        flexShrink: 0,
+        boxShadow: '0 0 1px rgba(0, 0, 0, 0.4)',
+      }}
+      aria-hidden="true"
+    >
+      <rect width="750" height="500" fill="#aa151b" />
+      <rect width="750" height="250" y="125" fill="#f1bf00" />
+      {/* Simplified coat of arms badge */}
+      <circle cx="210" cy="250" r="32" fill="#aa151b" />
+      <circle cx="210" cy="250" r="22" fill="#f1bf00" />
+      <circle cx="210" cy="250" r="12" fill="#aa151b" />
+    </svg>
+  );
+}
