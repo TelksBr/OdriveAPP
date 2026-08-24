@@ -8,3 +8,9 @@
 
 /models/*
   Cache-Control: public, max-age=2592000
+
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/manifest.webmanifest
+  Cache-Control: public, max-age=0, must-revalidate
