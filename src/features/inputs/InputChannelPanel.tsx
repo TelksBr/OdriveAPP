@@ -15,8 +15,11 @@ import {
   ButtonInputControl,
   LinearAnalogAxis,
   ZeroWheelInputControl,
+  ThermistorInputControl,
 } from './InputControls';
 import { AnalogSignalTuning } from './AnalogSignalTuning';
+import { ThermistorChannelConfig } from './ThermistorChannelConfig';
+import type { NtcThermistorPreset } from './ntcThermistorPresets';
 
 interface AnalogProcessorControls {
   filterOn: boolean;
@@ -37,7 +40,16 @@ interface InputChannelPanelProps {
   locale: Locale;
   disabled: boolean;
   analogProcessor?: AnalogProcessorControls;
+  thermistorPin?: string;
+  thermistorEnabled?: boolean;
+  thermistorTempC?: number | null;
+  thermistorLowerLimit?: string;
+  thermistorUpperLimit?: string;
+  thermistorDirty?: boolean;
   onChange: (field: ConfigField, value: string) => void;
+  onModeChange: (channel: GpioChannel, mode: string) => void;
+  onApplyThermistorPreset?: (preset: NtcThermistorPreset) => void;
+  onChangeThermistorLimit?: (key: 'temp_limit_lower' | 'temp_limit_upper', value: string) => void;
   onRead: () => void;
   onApply: () => void;
   onCaptureMin: () => void;
@@ -52,7 +64,16 @@ export function InputChannelPanel({
   locale,
   disabled,
   analogProcessor,
+  thermistorPin,
+  thermistorEnabled,
+  thermistorTempC = null,
+  thermistorLowerLimit = '80.0',
+  thermistorUpperLimit = '100.0',
+  thermistorDirty = false,
   onChange,
+  onModeChange,
+  onApplyThermistorPreset,
+  onChangeThermistorLimit,
   onRead,
   onApply,
   onCaptureMin,
@@ -71,31 +92,54 @@ export function InputChannelPanel({
     [channel, locale],
   );
 
-  const mode = channelValue(channel, 'mode', values);
-  const raw = parseChannelNumber(channelValue(channel, 'cur', values));
   const analogCapable = Boolean(channel.fields.amin && channel.fields.amax);
-  const isAnalog = analogCapable && mode === '2';
+  const isThermistor = analogCapable && Boolean(thermistorEnabled) && thermistorPin === String(channel.gpio);
+  const rawMode = channelValue(channel, 'mode', values);
+  const effectiveMode = isThermistor ? 'thermistor' : rawMode;
+
+  const raw = parseChannelNumber(channelValue(channel, 'cur', values));
+  const isAnalog = analogCapable && effectiveMode === '2';
   const filteredRaw = parseChannelNumber(channelValue(channel, 'filt', values));
   const filtered = filteredRaw === 65535 ? null : filteredRaw;
   const filterBypassed = isAnalog && filteredRaw === 65535;
   const min = parseChannelNumber(channelValue(channel, 'amin', values)) ?? 0;
   const max = parseChannelNumber(channelValue(channel, 'amax', values)) ?? 4095;
-  const dirty = Object.values(channel.fields).some((field) => field && dirtyPaths.includes(field.path));
+
+  const channelFieldsDirty = Object.values(channel.fields).some((field) => field && dirtyPaths.includes(field.path));
+  const dirty = channelFieldsDirty || (isThermistor && thermistorDirty);
   const emptyLabel = translate(locale, 'metricEmpty');
+
+  const modeOptions = useMemo(() => {
+    const opts = [
+      { value: '0', label: translate(locale, 'inputModeDisabled') },
+      { value: '1', label: translate(locale, 'inputModeButton') },
+    ];
+    if (analogCapable) {
+      opts.push({ value: '2', label: translate(locale, 'inputModeAnalog') });
+    }
+    opts.push({ value: '3', label: translate(locale, 'inputModeZero') });
+    if (analogCapable) {
+      opts.push({ value: 'thermistor', label: translate(locale, 'inputModeThermistor') });
+    }
+    return opts;
+  }, [analogCapable, locale]);
 
   return (
     <Card
       title={translate(locale, 'inputsGpioTitle', { n: channel.gpio })}
-      description={channelModeLabel(locale, mode)}
+      description={channelModeLabel(locale, effectiveMode)}
     >
       <div className="input-channel-panel">
         <InputLiveDisplay
-          mode={mode}
+          mode={effectiveMode}
           raw={raw ?? null}
           filtered={filtered ?? null}
           filterBypassed={filterBypassed}
           min={min}
           max={max}
+          thermistorTempC={thermistorTempC}
+          thermistorLowerLimit={parseFloat(thermistorLowerLimit) || 80}
+          thermistorUpperLimit={parseFloat(thermistorUpperLimit) || 100}
           locale={locale}
           emptyLabel={emptyLabel}
         />
@@ -107,53 +151,81 @@ export function InputChannelPanel({
           </div>
 
           <div className="input-channel-config-grid">
-            <GpioConfigField
-              locale={locale}
-              field={fields.mode}
-              value={channelValue(channel, 'mode', values)}
-              dirty={dirtyPaths.includes(fields.mode.path)}
-              disabled={disabled}
-              onChange={(value) => onChange(channel.fields.mode, value)}
-            />
-            <GpioConfigField
-              locale={locale}
-              field={fields.idx}
-              value={channelValue(channel, 'idx', values)}
-              dirty={dirtyPaths.includes(fields.idx.path)}
-              disabled={disabled || mode === '0'}
-              onChange={(value) => onChange(channel.fields.idx, value)}
-            />
-            <GpioConfigField
-              locale={locale}
-              field={fields.invert}
-              value={channelValue(channel, 'invert', values)}
-              dirty={dirtyPaths.includes(fields.invert.path)}
-              disabled={disabled || mode === '0'}
-              onChange={(value) => onChange(channel.fields.invert, value)}
-            />
-            {fields.amin && channel.fields.amin ? (
-            <GpioConfigField
-              locale={locale}
-              field={fields.amin}
-              value={channelValue(channel, 'amin', values)}
-              dirty={dirtyPaths.includes(fields.amin.path)}
-              disabled={disabled || !isAnalog}
-              inactive={!isAnalog}
-              onChange={(value) => onChange(channel.fields.amin!, value)}
-            />
-            ) : null}
-            {fields.amax && channel.fields.amax ? (
-            <GpioConfigField
-              locale={locale}
-              field={fields.amax}
-              value={channelValue(channel, 'amax', values)}
-              dirty={dirtyPaths.includes(fields.amax.path)}
-              disabled={disabled || !isAnalog}
-              inactive={!isAnalog}
-              onChange={(value) => onChange(channel.fields.amax!, value)}
-            />
+            <label className={`input-channel-field${dirtyPaths.includes(fields.mode.path) ? ' is-dirty' : ''}`}>
+              <span className="input-channel-field-label">
+                {fields.mode.label}
+                {dirtyPaths.includes(fields.mode.path) ? <span className="input-channel-field-dot" aria-hidden /> : null}
+              </span>
+              <select
+                value={effectiveMode}
+                disabled={disabled}
+                onChange={(e) => onModeChange(channel, e.target.value)}
+              >
+                {modeOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <span className="input-channel-field-desc">{fields.mode.description}</span>
+            </label>
+
+            {!isThermistor ? (
+              <>
+                <GpioConfigField
+                  locale={locale}
+                  field={fields.idx}
+                  value={channelValue(channel, 'idx', values)}
+                  dirty={dirtyPaths.includes(fields.idx.path)}
+                  disabled={disabled || effectiveMode === '0'}
+                  onChange={(value) => onChange(channel.fields.idx, value)}
+                />
+                <GpioConfigField
+                  locale={locale}
+                  field={fields.invert}
+                  value={channelValue(channel, 'invert', values)}
+                  dirty={dirtyPaths.includes(fields.invert.path)}
+                  disabled={disabled || effectiveMode === '0'}
+                  onChange={(value) => onChange(channel.fields.invert, value)}
+                />
+                {fields.amin && channel.fields.amin ? (
+                  <GpioConfigField
+                    locale={locale}
+                    field={fields.amin}
+                    value={channelValue(channel, 'amin', values)}
+                    dirty={dirtyPaths.includes(fields.amin.path)}
+                    disabled={disabled || !isAnalog}
+                    inactive={!isAnalog}
+                    onChange={(value) => onChange(channel.fields.amin!, value)}
+                  />
+                ) : null}
+                {fields.amax && channel.fields.amax ? (
+                  <GpioConfigField
+                    locale={locale}
+                    field={fields.amax}
+                    value={channelValue(channel, 'amax', values)}
+                    dirty={dirtyPaths.includes(fields.amax.path)}
+                    disabled={disabled || !isAnalog}
+                    inactive={!isAnalog}
+                    onChange={(value) => onChange(channel.fields.amax!, value)}
+                  />
+                ) : null}
+              </>
             ) : null}
           </div>
+
+          {isThermistor && onApplyThermistorPreset && onChangeThermistorLimit ? (
+            <ThermistorChannelConfig
+              locale={locale}
+              disabled={disabled}
+              lowerLimit={thermistorLowerLimit}
+              upperLimit={thermistorUpperLimit}
+              isDirty={thermistorDirty}
+              onApplyPreset={onApplyThermistorPreset}
+              onChangeLowerLimit={(val) => onChangeThermistorLimit('temp_limit_lower', val)}
+              onChangeUpperLimit={(val) => onChangeThermistorLimit('temp_limit_upper', val)}
+            />
+          ) : null}
 
           {isAnalog && analogProcessor ? (
             <AnalogSignalTuning
@@ -176,18 +248,18 @@ export function InputChannelPanel({
               {[fields.mode, fields.idx, fields.invert, fields.amin, fields.amax, fields.cur]
                 .filter((field): field is NonNullable<typeof field> => Boolean(field))
                 .map((field) => {
-                const help = getFieldHelp(field, locale);
-                return (
-                  <div key={field.path} className="input-channel-help-item">
-                    <code>{field.path}</code>
-                    <p>{field.description}</p>
-                    <span className="input-channel-help-meta">
-                      {help.range ? `${translate(locale, 'fieldRange')}: ${help.range}` : null}
-                      {help.unit ? `${help.range ? ' · ' : ''}${translate(locale, 'fieldUnit')}: ${help.unit}` : ''}
-                    </span>
-                  </div>
-                );
-              })}
+                  const help = getFieldHelp(field, locale);
+                  return (
+                    <div key={field.path} className="input-channel-help-item">
+                      <code>{field.path}</code>
+                      <p>{field.description}</p>
+                      <span className="input-channel-help-meta">
+                        {help.range ? `${translate(locale, 'fieldRange')}: ${help.range}` : null}
+                        {help.unit ? `${help.range ? ' · ' : ''}${translate(locale, 'fieldUnit')}: ${help.unit}` : ''}
+                      </span>
+                    </div>
+                  );
+                })}
             </div>
           </details>
         </section>
@@ -196,20 +268,24 @@ export function InputChannelPanel({
           <button type="button" disabled={disabled} onClick={onRead}>
             {translate(locale, 'inputsReadChannel')}
           </button>
-          <button type="button" disabled={disabled || !isAnalog || raw === undefined} onClick={onCaptureMin}>
-            {translate(locale, 'inputsCaptureMin')}
-          </button>
-          <button type="button" disabled={disabled || !isAnalog || raw === undefined} onClick={onCaptureMax}>
-            {translate(locale, 'inputsCaptureMax')}
-          </button>
-          <button
-            type="button"
-            disabled={disabled || !isAnalog}
-            title={translate(locale, 'inputsResetMinMaxTip')}
-            onClick={onResetMinMax}
-          >
-            {translate(locale, 'inputsResetMinMax')}
-          </button>
+          {!isThermistor ? (
+            <>
+              <button type="button" disabled={disabled || !isAnalog || raw === undefined} onClick={onCaptureMin}>
+                {translate(locale, 'inputsCaptureMin')}
+              </button>
+              <button type="button" disabled={disabled || !isAnalog || raw === undefined} onClick={onCaptureMax}>
+                {translate(locale, 'inputsCaptureMax')}
+              </button>
+              <button
+                type="button"
+                disabled={disabled || !isAnalog}
+                title={translate(locale, 'inputsResetMinMaxTip')}
+                onClick={onResetMinMax}
+              >
+                {translate(locale, 'inputsResetMinMax')}
+              </button>
+            </>
+          ) : null}
           <button type="button" disabled={disabled || !dirty} onClick={onApply}>
             {translate(locale, 'inputsApplyChannel')}
           </button>
@@ -283,6 +359,9 @@ function InputLiveDisplay({
   filterBypassed,
   min,
   max,
+  thermistorTempC,
+  thermistorLowerLimit = 80,
+  thermistorUpperLimit = 100,
   locale,
   emptyLabel,
 }: {
@@ -292,6 +371,9 @@ function InputLiveDisplay({
   filterBypassed: boolean;
   min: number;
   max: number;
+  thermistorTempC?: number | null;
+  thermistorLowerLimit?: number;
+  thermistorUpperLimit?: number;
   locale: Locale;
   emptyLabel: string;
 }) {
@@ -300,7 +382,16 @@ function InputLiveDisplay({
 
   return (
     <div className="input-channel-live">
-      {mode === '2' ? (
+      {mode === 'thermistor' ? (
+        <ThermistorInputControl
+          label={translate(locale, 'inputModeThermistor')}
+          tempC={thermistorTempC ?? null}
+          rawAdc={raw}
+          lowerLimit={thermistorLowerLimit}
+          upperLimit={thermistorUpperLimit}
+          emptyLabel={emptyLabel}
+        />
+      ) : mode === '2' ? (
         <>
           <LinearAnalogAxis label={label} value={raw} min={min} max={max} tone="ok" emptyLabel={emptyLabel} />
           {filterBypassed ? (

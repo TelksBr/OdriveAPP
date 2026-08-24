@@ -10,13 +10,16 @@ export function useInputsLivePoller(
   channels: GpioChannel[],
   connected: boolean,
   paused = false,
-): { liveValues: Record<string, string>; polling: boolean } {
+  thermistorEnabled = false,
+): { liveValues: Record<string, string>; motorTempC: number | null; polling: boolean } {
   const [liveValues, setLiveValues] = useState<Record<string, string>>({});
+  const [motorTempC, setMotorTempC] = useState<number | null>(null);
   const [polling, setPolling] = useState(false);
   const generationRef = useRef(0);
   const rafRef = useRef<number>(0);
   const channelsRef = useRef(channels);
   channelsRef.current = channels;
+  const loopCountRef = useRef(0);
 
   useEffect(() => {
     if (!connected || paused) {
@@ -51,6 +54,27 @@ export function useInputsLivePoller(
         }
       }
 
+      // Poll motor temperature every ~10 frames when thermistor is active
+      loopCountRef.current += 1;
+      if (thermistorEnabled && loopCountRef.current % 10 === 0) {
+        try {
+          const raw = await readField({
+            path: 'axis0.motor.motor_thermistor.temperature',
+            label: 'Motor temperature',
+            type: 'readonly',
+            protocol: 'odrive',
+            readonly: true,
+            description: '',
+          });
+          const parsed = parseFloat(raw.trim());
+          if (Number.isFinite(parsed)) {
+            setMotorTempC(parsed);
+          }
+        } catch {
+          // ignore transient errors
+        }
+      }
+
       if (generation === generationRef.current && Object.keys(updates).length > 0) {
         setLiveValues((prev) => ({ ...prev, ...updates }));
       }
@@ -67,7 +91,7 @@ export function useInputsLivePoller(
       setPolling(false);
       cancelAnimationFrame(rafRef.current);
     };
-  }, [connected, paused]);
+  }, [connected, paused, thermistorEnabled]);
 
-  return { liveValues, polling };
+  return { liveValues, motorTempC, polling };
 }

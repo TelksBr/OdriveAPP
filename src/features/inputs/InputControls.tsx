@@ -213,6 +213,60 @@ export function ZeroWheelInputControl({
   );
 }
 
+interface ThermistorInputControlProps {
+  label: string;
+  tempC: number | null;
+  rawAdc: number | null;
+  lowerLimit: number;
+  upperLimit: number;
+  emptyLabel: string;
+}
+
+export function ThermistorInputControl({
+  label,
+  tempC,
+  rawAdc,
+  lowerLimit,
+  upperLimit,
+  emptyLabel,
+}: ThermistorInputControlProps) {
+  const percent =
+    tempC !== null && Number.isFinite(tempC)
+      ? Math.max(0, Math.min(100, (tempC / Math.max(upperLimit, 120)) * 100))
+      : 0;
+  const isWarn = tempC !== null && tempC >= lowerLimit;
+  const isError = tempC !== null && tempC >= upperLimit;
+  const tone = isError ? 'warn' : isWarn ? 'warn' : 'ok';
+
+  return (
+    <div className={`input-control input-control--thermistor ${isError ? 'is-error' : isWarn ? 'is-warn' : ''}`}>
+      <div className="input-control-header">
+        <span className="input-control-label">{label}</span>
+        <strong
+          className="input-control-value"
+          style={{ color: isError ? 'var(--error)' : isWarn ? 'var(--warn)' : 'var(--ok)' }}
+        >
+          {tempC === null || !Number.isFinite(tempC) ? emptyLabel : `${tempC.toFixed(1)} °C`}
+        </strong>
+      </div>
+      <div className="input-control-track" aria-hidden="true">
+        <span
+          className={`input-control-fill tone-${tone}`}
+          style={{
+            width: `${percent}%`,
+            backgroundColor: isError ? 'var(--error)' : isWarn ? 'var(--warn)' : 'var(--ok)',
+          }}
+        />
+      </div>
+      <div className="input-control-scale">
+        <span>0 °C</span>
+        {rawAdc !== null && <span style={{ opacity: 0.7 }}>ADC {rawAdc}</span>}
+        <span>{upperLimit} °C (cutoff)</span>
+      </div>
+    </div>
+  );
+}
+
 function CenteredFill({ percent, tone }: { percent: number | null; tone: Tone }) {
   if (percent === null || !Number.isFinite(percent) || percent === 0) {
     return null;

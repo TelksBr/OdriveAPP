@@ -81,6 +81,7 @@ export function parseChannelNumber(value: string): number | undefined {
 }
 
 export function channelModeLabel(locale: Locale, mode: string): string {
+  if (mode === 'thermistor') return translate(locale, 'inputModeThermistor');
   if (mode === '1') return translate(locale, 'inputModeButton');
   if (mode === '2') return translate(locale, 'inputModeAnalog');
   if (mode === '3') return translate(locale, 'inputModeZero');
