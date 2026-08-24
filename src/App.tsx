@@ -25,6 +25,7 @@ import { AboutPage } from './features/about/AboutPage';
 import { Pill } from './shared/ui';
 import { AppIcon } from './shared/ui/AppIcon';
 import { LiveAppLogo } from './shared/ui/LiveAppLogo';
+import { LanguageSelector } from './shared/ui/LanguageSelector';
 import { useWheelPositionPoll } from './features/wheel/useWheelPositionPoll';
 import { SidebarSearch } from './features/navigation/SidebarSearch';
 import { FieldFocusEffect } from './features/navigation/FieldFocusEffect';
@@ -211,15 +212,10 @@ function AppShell() {
             <div className="topbar-divider" aria-hidden="true" />
 
             {/* Language */}
-            <select
-              className="topbar-select"
-              aria-label={translate(state.locale, 'language')}
-              value={state.locale}
-              onChange={(event) => dispatch({ type: 'set-locale', locale: event.target.value === 'en' ? 'en' : 'pt' })}
-            >
-              <option value="pt">{translate(state.locale, 'localePt')}</option>
-              <option value="en">{translate(state.locale, 'localeEn')}</option>
-            </select>
+            <LanguageSelector
+              locale={state.locale}
+              onChange={(locale) => dispatch({ type: 'set-locale', locale })}
+            />
 
             <PwaStatus locale={state.locale} />
 
