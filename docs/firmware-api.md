@@ -220,9 +220,9 @@ Registo estático em `cmdtable[]` — **sem** registo dinâmico. Meta-comandos (
 | `sys.mteeprom` | | | ✓ | Grava na EEPROM do chip MT6835 (pausa 6.5s, não desligar por 6s) |
 | `sys.mtread` | | ✓ | | Lê registro hex do MT6835 (`sys.mtread=0x011`) |
 | `sys.mtwrite` | | ✓ | | Escreve registro hex do MT6835 (`sys.mtwrite=0x011 0x03`) |
-| `sys.fxtest` | ✓ | | | Resumo FFB numa linha (`ffb=1 pos=12.5 spd=0.0 trq=0.000 fx=2`) |
+| `sys.temp` | ✓ | | | Temperatura real dos MOSFETs / gate driver em °C |
+| `sys.motortemp` | ✓ | | | Temperatura do motor via termistor NTC em °C |
 | `sys.format`, `sys.flashdump` | ✓ | | ✓ | Stubs |
-| `sys.temp` | ✓ | | | Placeholder `25` |
 | `sys.signature`, `sys.debug` | ✓ | | | Stubs |
 
 **Web:** `sys.save!` em `unifiedSave.ts` e `fieldApply.ts` (auto após campos FFB).

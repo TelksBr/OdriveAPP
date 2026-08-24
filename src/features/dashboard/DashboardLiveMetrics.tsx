@@ -55,6 +55,32 @@ export function DashboardLiveMetrics({ connected, metrics }: DashboardLiveMetric
         metrics.iqA === null ? null : `${metrics.iqA.toFixed(2)} A`,
     },
     {
+      labelKey: 'metricFetTemp',
+      value: metrics.fetTempC === null ? null : `${metrics.fetTempC.toFixed(1)} °C`,
+      tone:
+        metrics.fetTempC !== null && metrics.fetTempC > 85
+          ? 'error'
+          : metrics.fetTempC !== null && metrics.fetTempC > 70
+            ? 'warn'
+            : metrics.fetTempC !== null
+              ? 'ok'
+              : undefined,
+    },
+    ...(metrics.motorTempC !== null
+      ? [
+          {
+            labelKey: 'metricMotorTemp',
+            value: `${metrics.motorTempC.toFixed(1)} °C`,
+            tone:
+              metrics.motorTempC > 85
+                ? ('error' as const)
+                : metrics.motorTempC > 70
+                  ? ('warn' as const)
+                  : ('ok' as const),
+          },
+        ]
+      : []),
+    {
       labelKey: 'metricErrors',
       value:
         errorOk === null

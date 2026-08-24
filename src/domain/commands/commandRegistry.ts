@@ -218,6 +218,20 @@ export const boardCommands: BoardCommand[] = [
     description: 'OpenFFBoard ping — replies pong. Confirms the FFB command parser, not ODrive ASCII.',
   },
   {
+    id: 'temp-mosfet',
+    label: 'MOSFET temperature',
+    command: 'sys.temp?',
+    category: 'diagnostics',
+    description: 'Read real onboard MOSFET / gate driver temperature in °C.',
+  },
+  {
+    id: 'temp-motor',
+    label: 'Motor temperature',
+    command: 'sys.motortemp?',
+    category: 'diagnostics',
+    description: 'Read external motor thermistor temperature in °C.',
+  },
+  {
     id: 'fxtest',
     label: 'FFB one-line summary',
     command: 'sys.fxtest?',

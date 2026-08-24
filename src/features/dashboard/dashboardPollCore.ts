@@ -1,9 +1,9 @@
 import { decodeErr, ERR_BITS_AXIS, ERR_BITS_ODRIVE, type DecodedError } from '../live/errorDecoder';
 import { serialService } from '../serial/SerialService';
 
-export type DashboardMetricKey = 'vbus' | 'axisState' | 'iq' | 'errOdrv' | 'errAxis';
+export type DashboardMetricKey = 'vbus' | 'axisState' | 'iq' | 'fetTemp' | 'motorTemp' | 'errOdrv' | 'errAxis';
 
-export const METRIC_ROTATION: DashboardMetricKey[] = ['vbus', 'axisState', 'iq', 'errOdrv', 'errAxis'];
+export const METRIC_ROTATION: DashboardMetricKey[] = ['vbus', 'axisState', 'iq', 'fetTemp', 'motorTemp', 'errOdrv', 'errAxis'];
 
 export const VBUS_WARN_V = 20;
 
@@ -11,6 +11,8 @@ export interface DashboardMetricsRaw {
   vbusV: number | null;
   axisState: string | null;
   iqA: number | null;
+  fetTempC: number | null;
+  motorTempC: number | null;
   odrvError: DecodedError | null;
   axisError: DecodedError | null;
 }
@@ -20,6 +22,8 @@ export function emptyDashboardMetrics(): DashboardMetricsRaw {
     vbusV: null,
     axisState: null,
     iqA: null,
+    fetTempC: null,
+    motorTempC: null,
     odrvError: null,
     axisError: null,
   };
@@ -49,6 +53,30 @@ export async function pollDashboardMetric(key: DashboardMetricKey): Promise<Part
       const raw = await serialService.sendCommand('r axis0.motor.current_control.Iq_measured', true, 1000, false);
       const value = parseFloat(raw.trim());
       return { iqA: Number.isFinite(value) ? value : null };
+    }
+    case 'fetTemp': {
+      try {
+        const raw = await serialService.sendCommand('sys.temp?', true, 1000, false);
+        const match = raw.match(/\|(-?\d+(?:\.\d+)?)\]/) ?? raw.match(/(-?\d+(?:\.\d+)?)/);
+        const value = match ? parseFloat(match[1]) : parseFloat(raw.trim());
+        return { fetTempC: Number.isFinite(value) ? value : null };
+      } catch {
+        const raw = await serialService.sendCommand('r axis0.motor.fet_thermistor.temperature', true, 1000, false);
+        const value = parseFloat(raw.trim());
+        return { fetTempC: Number.isFinite(value) ? value : null };
+      }
+    }
+    case 'motorTemp': {
+      try {
+        const raw = await serialService.sendCommand('sys.motortemp?', true, 1000, false);
+        const match = raw.match(/\|(-?\d+(?:\.\d+)?)\]/) ?? raw.match(/(-?\d+(?:\.\d+)?)/);
+        const value = match ? parseFloat(match[1]) : parseFloat(raw.trim());
+        return { motorTempC: Number.isFinite(value) ? value : null };
+      } catch {
+        const raw = await serialService.sendCommand('r axis0.motor.motor_thermistor.temperature', true, 1000, false);
+        const value = parseFloat(raw.trim());
+        return { motorTempC: Number.isFinite(value) ? value : null };
+      }
     }
     case 'errOdrv': {
       const raw = await serialService.sendCommand('r error', true, 1000, false);
