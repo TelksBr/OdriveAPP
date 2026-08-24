@@ -11,6 +11,7 @@ import { CalibrationWorkflowCard } from './CalibrationWorkflowCard';
 import { CalibrationFinalizeCard } from './CalibrationFinalizeCard';
 import { AnticogWorkflowCard } from './AnticogWorkflowCard';
 import { MechanicalCenterPanel } from './MechanicalCenterPanel';
+import { EncoderTypeSelectorCard } from './EncoderTypeSelectorCard';
 import {
   calibrationRunWorkflows,
   closedLoopWorkflow,
@@ -120,6 +121,9 @@ export function CalibrationPage() {
       </div>
 
       <p className="cal-flow-intro">{translate(locale, 'calFlowIntro')}</p>
+
+      {/* Seletor de Arquitetura de Encoder e Inicialização */}
+      <EncoderTypeSelectorCard onArchitectureChanged={bumpCalStatus} />
 
       {calibrationRunWorkflows.map((workflow) => {
         const idx = nextStep();

@@ -2,7 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { useAppState } from '../../app/AppState';
 import { translate } from '../../i18n/messages';
 import { Card } from '../../shared/ui';
-import { isPresetSynced, getPostCalibrationPreset, isIncrementalEncoderWithoutIndex } from './calibrationBootPresets';
+import {
+  isPresetSynced,
+  getPostCalibrationPreset,
+  detectEncoderArchitecture,
+} from './calibrationBootPresets';
 import {
   applyPostCalibrationPresetAndSave,
   canArmClosedLoop,
@@ -42,8 +46,8 @@ export function CalibrationFinalizeCard({ index, onStatusChange, refreshToken = 
   busyRef.current = state.busy;
 
   const fv = state.fieldValues;
+  const arch = detectEncoderArchitecture(fv);
   const preset = getPostCalibrationPreset(fv);
-  const incrementalNoZ = isIncrementalEncoderWithoutIndex(fv);
   const motorOk = mergeCalFlag(fv, 'axis0.motor.is_calibrated', live?.motorCalibrated);
   const encOk = mergeCalFlag(fv, 'axis0.encoder.is_ready', live?.encoderReady);
   const presetSynced = isPresetSynced(preset, fv);
@@ -105,7 +109,13 @@ export function CalibrationFinalizeCard({ index, onStatusChange, refreshToken = 
         setLive(result.status);
         onStatusChange?.(result.status);
       }
-      const msg = translate(locale, incrementalNoZ ? 'calFinalizeOkIncremental' : 'calFinalizeOk');
+      const msgKey =
+        arch === 'incremental_no_z'
+          ? 'calFinalizeOkIncremental'
+          : arch === 'incremental_abz'
+          ? 'calFinalizeOkAbz'
+          : 'calFinalizeOk';
+      const msg = translate(locale, msgKey);
       dispatch({ type: 'append-log', direction: 'info', message: msg });
       toast(dispatch, msg, 'ok');
     } catch (error) {
@@ -125,6 +135,27 @@ export function CalibrationFinalizeCard({ index, onStatusChange, refreshToken = 
     }
   }
 
+  const archBadgeKey =
+    arch === 'incremental_no_z'
+      ? 'encoderArchOptABadge'
+      : arch === 'incremental_abz'
+      ? 'encoderArchOptBBadge'
+      : 'encoderArchOptCBadge';
+
+  const archHintKey =
+    arch === 'incremental_no_z'
+      ? 'calFinalizeHintIncremental'
+      : arch === 'incremental_abz'
+      ? 'calFinalizeHintAbz'
+      : 'calFinalizeHint';
+
+  const archBootNoteKey =
+    arch === 'incremental_no_z'
+      ? 'calFinalizeBootNoteIncremental'
+      : arch === 'incremental_abz'
+      ? 'calFinalizeBootNoteAbz'
+      : 'calFinalizeBootNote';
+
   return (
     <Card
       title={`${index}. ${translate(locale, 'calFinalizeTitle')}`}
@@ -133,6 +164,9 @@ export function CalibrationFinalizeCard({ index, onStatusChange, refreshToken = 
       <div className="cal-workflow-head">
         <span className={`cal-workflow-badge${persisted ? ' ok' : ''}`}>
           {persisted ? translate(locale, 'calFlowStatusDone') : translate(locale, 'calFlowStatusPending')}
+        </span>
+        <span className="cal-workflow-badge">
+          {translate(locale, archBadgeKey)}
         </span>
         <button type="button" className="linkish" disabled={!state.connected || state.busy} onClick={() => void refreshLive()}>
           {translate(locale, 'calRefreshStatus')}
@@ -152,7 +186,7 @@ export function CalibrationFinalizeCard({ index, onStatusChange, refreshToken = 
       </ul>
 
       <p className="cal-workflow-prereq">
-        {translate(locale, incrementalNoZ ? 'calFinalizeHintIncremental' : 'calFinalizeHint')}
+        {translate(locale, archHintKey)}
       </p>
 
       <ul className="cal-workflow-preset-list">
@@ -177,9 +211,10 @@ export function CalibrationFinalizeCard({ index, onStatusChange, refreshToken = 
 
       {live && canArmClosedLoop(live) && persisted ? (
         <p className="cal-workflow-prereq ok">
-          {translate(locale, incrementalNoZ ? 'calFinalizeBootNoteIncremental' : 'calFinalizeBootNote')}
+          {translate(locale, archBootNoteKey)}
         </p>
       ) : null}
     </Card>
   );
 }
+

@@ -7,10 +7,14 @@ import {
   applyBootPreset,
   BOOT_FLAG_DEFS,
   parseBoolField,
+  getBootPresetForArchitecture,
+  detectEncoderArchitecture,
   type BootFlagDef,
   type BootPresetId,
+  type EncoderArchitecture,
 } from './calibrationBootPresets';
 import { useBoardSave } from '../board/useBoardSave';
+import { toast } from '../../shared/toastActions';
 
 const groupTitleKey: Record<BootFlagDef['group'], string> = {
   precal: 'calBootGroupPrecal',
@@ -31,6 +35,8 @@ export function BootFlagsPanel() {
   const { saveAll, saveBadge } = useBoardSave();
   const [draft, setDraft] = useState<Record<string, boolean>>({});
 
+  const detectedArch = detectEncoderArchitecture(state.fieldValues);
+
   useEffect(() => {
     const next: Record<string, boolean> = {};
     for (const def of BOOT_FLAG_DEFS) {
@@ -48,6 +54,26 @@ export function BootFlagsPanel() {
     }
     return map;
   }, []);
+
+  async function applyArchPreset(arch: EncoderArchitecture) {
+    dispatch({ type: 'set-busy', busy: true });
+    try {
+      const entries = getBootPresetForArchitecture(arch);
+      const { fail } = await applyBootPersist(entries, dispatch);
+      if (fail === 0) {
+        dispatch({ type: 'set-nvm-pending', pending: true });
+        const toastKey =
+          arch === 'incremental_no_z'
+            ? 'encoderArchAppliedOptA'
+            : arch === 'incremental_abz'
+            ? 'encoderArchAppliedOptB'
+            : 'encoderArchAppliedOptC';
+        toast(dispatch, translate(locale, toastKey), 'ok');
+      }
+    } finally {
+      dispatch({ type: 'set-busy', busy: false });
+    }
+  }
 
   async function applyPreset(preset: BootPresetId) {
     dispatch({ type: 'set-busy', busy: true });
@@ -96,20 +122,40 @@ export function BootFlagsPanel() {
     <Card title={translate(locale, 'calBootPanelTitle')} description={translate(locale, 'calBootPanelDesc')}>
       <p className="cal-boot-panel-note">{translate(locale, 'calBootPanelNote')}</p>
 
-      <div className="cal-boot-presets">
+      <div className="cal-boot-presets" style={{ flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
         <button
           type="button"
-          className="ok"
+          className={detectedArch === 'spi_absolute' ? 'ok' : ''}
           disabled={!state.connected || state.busy}
-          onClick={() => void applyPreset('persistReady')}
+          onClick={() => void applyArchPreset('spi_absolute')}
+          title="Opção C: pre_cal=true, startup_*=false, startup_closed_loop=true"
         >
-          {translate(locale, 'calBootPresetPersist')}
+          🚀 {translate(locale, 'encoderArchOptCTitle')}
         </button>
         <button
           type="button"
-          className="warn"
+          className={detectedArch === 'incremental_abz' ? 'ok' : ''}
+          disabled={!state.connected || state.busy}
+          onClick={() => void applyArchPreset('incremental_abz')}
+          title="Opção B: pre_cal=true, use_index=true, startup_encoder_index_search=true"
+        >
+          ⚡ {translate(locale, 'encoderArchOptBTitle')}
+        </button>
+        <button
+          type="button"
+          className={detectedArch === 'incremental_no_z' ? 'warn' : ''}
+          disabled={!state.connected || state.busy}
+          onClick={() => void applyArchPreset('incremental_no_z')}
+          title="Opção A: pre_cal=false, startup_encoder_offset_calibration=true"
+        >
+          🔄 {translate(locale, 'encoderArchOptATitle')}
+        </button>
+        <button
+          type="button"
+          className="linkish"
           disabled={!state.connected || state.busy}
           onClick={() => void applyPreset('autoCalEveryBoot')}
+          title="Re-calibra tudo a cada boot"
         >
           {translate(locale, 'calBootPresetAutoCal')}
         </button>

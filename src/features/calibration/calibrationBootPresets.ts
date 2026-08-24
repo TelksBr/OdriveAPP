@@ -2,7 +2,6 @@ import type { Dispatch } from 'react';
 import type { AppAction } from '../../app/types';
 import { writePaths, writePathsNow } from './calibrationPresets';
 import { assessCalibrationIntegrity } from './calibrationIntegrity';
-import { detectEncoderProfile } from './calibrationTargets';
 
 export interface BootPersistEntry {
   path: string;
@@ -117,6 +116,8 @@ export function bootPresetEntries(
   });
 }
 
+export type EncoderArchitecture = 'incremental_no_z' | 'incremental_abz' | 'spi_absolute';
+
 /** FFB needs torque passthrough after erase — catalog default is 1, NVM may not be. */
 export const FFB_CONTROLLER_MODE_WRITES: { path: string; value: string }[] = [
   { path: 'axis0.controller.config.control_mode', value: '1' },
@@ -129,50 +130,100 @@ const POST_CAL_LIMITS: BootPersistEntry[] = [
   { path: 'axis0.controller.config.enable_torque_mode_vel_limit', labelKey: 'calBootDisableTorqueVelLimit', value: false },
 ];
 
-/** AS5047, incremental com Z, etc. — HTML setup step 9. */
-export const postCalibrationPreset: BootPersistEntry[] = [
+/** Opção A: Incremental sem pino Z — calibração de offset a cada boot */
+export const postCalibrationPresetIncrementalNoZ: BootPersistEntry[] = [
+  { path: 'axis0.motor.config.pre_calibrated', labelKey: 'calBootMotorPreCal', value: true },
+  { path: 'axis0.encoder.config.pre_calibrated', labelKey: 'calBootEncoderPreCal', value: false },
+  { path: 'axis0.encoder.config.use_index', labelKey: 'calBootUseIndex', value: false },
+  { path: 'axis0.config.startup_motor_calibration', labelKey: 'calBootStartupMotorCal', value: false },
+  { path: 'axis0.config.startup_encoder_offset_calibration', labelKey: 'calBootStartupEncoderOffset', value: true },
+  { path: 'axis0.config.startup_encoder_index_search', labelKey: 'calBootStartupIndexSearch', value: false },
+  { path: 'axis0.config.startup_closed_loop_control', labelKey: 'calBootStartupClosedLoop', value: true },
+  ...POST_CAL_LIMITS,
+];
+
+/** Opção B: Incremental com pino Z (ABZ) — busca de índice Z no boot */
+export const postCalibrationPresetIncrementalAbz: BootPersistEntry[] = [
   { path: 'axis0.motor.config.pre_calibrated', labelKey: 'calBootMotorPreCal', value: true },
   { path: 'axis0.encoder.config.pre_calibrated', labelKey: 'calBootEncoderPreCal', value: true },
+  { path: 'axis0.encoder.config.use_index', labelKey: 'calBootUseIndex', value: true },
   { path: 'axis0.config.startup_motor_calibration', labelKey: 'calBootStartupMotorCal', value: false },
   { path: 'axis0.config.startup_encoder_offset_calibration', labelKey: 'calBootStartupEncoderOffset', value: false },
+  { path: 'axis0.config.startup_encoder_index_search', labelKey: 'calBootStartupIndexSearch', value: true },
   { path: 'axis0.config.startup_closed_loop_control', labelKey: 'calBootStartupClosedLoop', value: true },
   ...POST_CAL_LIMITS,
 ];
 
-/**
- * Incremental sem pulso Z — firmware força encoder.pre_calibrated=false
- * (encoder.cpp:check_pre_calibrated). Offset recal a cada boot — HTML step 10 skip.
- */
-export const postCalibrationPresetIncrementalNoIndex: BootPersistEntry[] = [
+/** Opção C: Encoder Absoluto SPI (MT6835 / AS5047P / TLE5012B) — calibração única, boot instantâneo */
+export const postCalibrationPresetSpiAbsolute: BootPersistEntry[] = [
   { path: 'axis0.motor.config.pre_calibrated', labelKey: 'calBootMotorPreCal', value: true },
+  { path: 'axis0.encoder.config.pre_calibrated', labelKey: 'calBootEncoderPreCal', value: true },
+  { path: 'axis0.encoder.config.use_index', labelKey: 'calBootUseIndex', value: false },
   { path: 'axis0.config.startup_motor_calibration', labelKey: 'calBootStartupMotorCal', value: false },
-  {
-    path: 'axis0.config.startup_encoder_offset_calibration',
-    labelKey: 'calBootStartupEncoderOffset',
-    value: true,
-  },
+  { path: 'axis0.config.startup_encoder_offset_calibration', labelKey: 'calBootStartupEncoderOffset', value: false },
+  { path: 'axis0.config.startup_encoder_index_search', labelKey: 'calBootStartupIndexSearch', value: false },
   { path: 'axis0.config.startup_closed_loop_control', labelKey: 'calBootStartupClosedLoop', value: true },
   ...POST_CAL_LIMITS,
 ];
+
+/** Backwards compatibility alias */
+export const postCalibrationPreset: BootPersistEntry[] = postCalibrationPresetSpiAbsolute;
+export const postCalibrationPresetIncrementalNoIndex: BootPersistEntry[] = postCalibrationPresetIncrementalNoZ;
+
+export function detectEncoderArchitecture(fieldValues: Record<string, string>): EncoderArchitecture {
+  const mode = (fieldValues['axis0.encoder.config.mode'] ?? '').trim().split(/\s+/)[0];
+  const useIndex = parseBoolField(fieldValues['axis0.encoder.config.use_index']);
+  const startupEncCal = parseBoolField(fieldValues['axis0.config.startup_encoder_offset_calibration']);
+  const startupIndex = parseBoolField(fieldValues['axis0.config.startup_encoder_index_search']);
+
+  if (mode === '0') {
+    if (useIndex || startupIndex) {
+      return 'incremental_abz';
+    }
+    return 'incremental_no_z';
+  }
+  if (['257', '258', '259', '260', '261'].includes(mode)) {
+    return 'spi_absolute';
+  }
+  // If startup offset cal is enabled, consider incremental_no_z
+  if (startupEncCal) {
+    return 'incremental_no_z';
+  }
+  if (startupIndex) {
+    return 'incremental_abz';
+  }
+  return 'spi_absolute';
+}
 
 export function isIncrementalEncoderWithoutIndex(fieldValues: Record<string, string>): boolean {
-  return (
-    detectEncoderProfile(fieldValues['axis0.encoder.config.mode']) === 'incremental' &&
-    !parseBoolField(fieldValues['axis0.encoder.config.use_index'])
-  );
+  return detectEncoderArchitecture(fieldValues) === 'incremental_no_z';
+}
+
+export function getBootPresetForArchitecture(arch: EncoderArchitecture): BootPersistEntry[] {
+  switch (arch) {
+    case 'incremental_no_z':
+      return postCalibrationPresetIncrementalNoZ;
+    case 'incremental_abz':
+      return postCalibrationPresetIncrementalAbz;
+    case 'spi_absolute':
+    default:
+      return postCalibrationPresetSpiAbsolute;
+  }
 }
 
 export function getPostCalibrationPreset(fieldValues: Record<string, string>): BootPersistEntry[] {
-  if (isIncrementalEncoderWithoutIndex(fieldValues)) {
-    return postCalibrationPresetIncrementalNoIndex;
-  }
-  return postCalibrationPreset;
+  const arch = detectEncoderArchitecture(fieldValues);
+  return getBootPresetForArchitecture(arch);
 }
 
 /** @deprecated use paths from post-cal presets only for finalize — not for toolbar save guards */
 export function allPostCalibrationBootPaths(): string[] {
   const paths = new Set<string>();
-  for (const entry of [...postCalibrationPreset, ...postCalibrationPresetIncrementalNoIndex]) {
+  for (const entry of [
+    ...postCalibrationPresetIncrementalNoZ,
+    ...postCalibrationPresetIncrementalAbz,
+    ...postCalibrationPresetSpiAbsolute,
+  ]) {
     paths.add(entry.path);
   }
   return [...paths];
