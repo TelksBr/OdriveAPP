@@ -106,6 +106,18 @@ fn flash_firmware(app: AppHandle, binary_bytes: Vec<u8>) -> Result<String, Strin
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Purge any stale WebView2 Service Worker and CacheStorage from previous PWA builds
+    if let Ok(local_appdata) = std::env::var("LOCALAPPDATA") {
+        let sw_cache = std::path::PathBuf::from(local_appdata)
+            .join("com.wheelforge.desktop")
+            .join("EBWebView")
+            .join("Default")
+            .join("Service Worker");
+        if sw_cache.exists() {
+            let _ = std::fs::remove_dir_all(sw_cache);
+        }
+    }
+
     let serial_state = Arc::new(SerialState::new());
     let hid_state = Arc::new(HidState::new());
 

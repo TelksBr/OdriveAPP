@@ -4,12 +4,23 @@ import App from './App';
 import './styles.css';
 import { isDesktopApp } from './features/serial/nativeSerialBridge';
 
-if (isDesktopApp() && typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then((registrations) => {
-    for (const registration of registrations) {
-      registration.unregister();
-    }
-  });
+if (isDesktopApp()) {
+  if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      for (const registration of registrations) {
+        registration.unregister();
+      }
+    });
+  }
+  if (typeof window !== 'undefined' && window.caches) {
+    caches.keys().then((names) => {
+      for (const name of names) {
+        caches.delete(name);
+      }
+    });
+  }
+} else if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => undefined);
 }
 
 interface ErrorBoundaryProps {
