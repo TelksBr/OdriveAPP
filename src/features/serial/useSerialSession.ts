@@ -175,7 +175,27 @@ export function useSerialSession() {
     }
   }
 
-  return { toggleConnection, phase };
+  async function connectWithPort(portName: string) {
+    if (state.connecting) {
+      return;
+    }
+    try {
+      autoReconnectBlockedRef.current = false;
+      dispatch({ type: 'set-connecting', connecting: true });
+      toastKey(dispatch, state.locale, 'serialConnecting', 'info');
+      await serialService.connect({ portName, allowPicker: false });
+      toastKey(dispatch, state.locale, 'serialConnectedLog', 'ok');
+    } catch (error) {
+      const raw = error instanceof Error ? error.message : String(error);
+      const msg = translateSerialError(state.locale, raw);
+      dispatch({ type: 'append-log', direction: 'error', message: msg });
+      toast(dispatch, msg, 'error');
+    } finally {
+      dispatch({ type: 'set-connecting', connecting: false });
+    }
+  }
+
+  return { toggleConnection, connectWithPort, phase };
 }
 
 function translateSerialError(locale: Locale, raw: string): string {

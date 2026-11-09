@@ -17,6 +17,56 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="Permissions-Policy" content="document-picture-in-picture=(self)" />
     <title>WheelForge</title>
+    <script>
+      // Disable and purge Service Workers in Tauri desktop app to prevent Workbox fetch interception
+      var isTauriDesktop = Boolean(
+        window.isTauri ||
+        window.__TAURI_INTERNALS__ ||
+        window.__TAURI__ ||
+        (window.location && (window.location.hostname === 'tauri.localhost' || window.location.protocol === 'tauri:'))
+      );
+      if (isTauriDesktop) {
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.register = function () {
+            return Promise.reject(new Error('Service workers disabled in desktop mode'));
+          };
+          navigator.serviceWorker.getRegistrations().then(function (registrations) {
+            for (var i = 0; i < registrations.length; i++) {
+              registrations[i].unregister();
+            }
+          });
+          if (window.caches) {
+            caches.keys().then(function (names) {
+              for (var i = 0; i < names.length; i++) {
+                caches.delete(names[i]);
+              }
+            });
+          }
+        }
+      }
+
+      window.addEventListener('error', function (e) {
+        var el = document.getElementById('startup-error-overlay');
+        if (!el) {
+          el = document.createElement('div');
+          el.id = 'startup-error-overlay';
+          el.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:#180b0b;color:#fca5a5;padding:24px;font-family:monospace;font-size:14px;z-index:9999999;overflow:auto;white-space:pre-wrap;line-height:1.5;';
+          document.body.appendChild(el);
+        }
+        el.innerHTML = '<h2 style="color:#ef4444;margin-top:0;">Erro JavaScript de Inicialização</h2><p><strong>' + (e.message || 'Erro desconhecido') + '</strong></p><pre style="background:rgba(0,0,0,0.5);padding:12px;border-radius:6px;">' + (e.error && e.error.stack ? e.error.stack : (e.filename + ':' + e.lineno + ':' + e.colno)) + '</pre>';
+      });
+      window.addEventListener('unhandledrejection', function (e) {
+        var reason = e.reason;
+        var el = document.getElementById('startup-error-overlay');
+        if (!el) {
+          el = document.createElement('div');
+          el.id = 'startup-error-overlay';
+          el.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:#180b0b;color:#fdba74;padding:24px;font-family:monospace;font-size:14px;z-index:9999999;overflow:auto;white-space:pre-wrap;line-height:1.5;';
+          document.body.appendChild(el);
+        }
+        el.innerHTML = '<h2 style="color:#f97316;margin-top:0;">Rejeição de Promessa Não Tratada</h2><p><strong>' + (reason && (reason.message || String(reason))) + '</strong></p><pre style="background:rgba(0,0,0,0.5);padding:12px;border-radius:6px;">' + (reason && reason.stack ? reason.stack : String(reason)) + '</pre>';
+      });
+    </script>
   </head>
   <body>
     <div id="root"></div>

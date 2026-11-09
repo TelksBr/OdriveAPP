@@ -12,13 +12,18 @@
     "test": "bun test src",
     "i18n:check": "bun scripts/check-i18n.ts",
     "firmware:check": "bun scripts/check-firmware-surface.ts",
-    "import-wheel-textures": "node scripts/import-wheel-textures.mjs"
+    "import-wheel-textures": "node scripts/import-wheel-textures.mjs",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build"
   },
   "devDependencies": {
+    "@tauri-apps/cli": "^2.12.4",
     "@types/node": "^26.2.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@types/three": "^0.184.1",
+    "@types/w3c-web-usb": "^1.0.14",
     "@vitejs/plugin-react": "^6.0.2",
     "typescript": "~6.0.2",
     "vite": "^8.0.12",
@@ -27,6 +32,7 @@
   "dependencies": {
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
+    "@tauri-apps/api": "^2.12.4",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "three": "^0.184.0"

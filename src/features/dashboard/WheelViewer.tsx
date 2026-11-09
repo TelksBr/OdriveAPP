@@ -20,13 +20,17 @@ import {
   type WheelRenderSettings,
 } from './wheelRenderQuality';
 
-const WHEEL_MODEL = '/models/wheel.fbx';
-const WHEEL_TEXTURES = '/models/wheel/textures/';
+const WHEEL_MODEL = `${import.meta.env.BASE_URL}models/wheel.fbx`;
+const WHEEL_TEXTURES = `${import.meta.env.BASE_URL}models/wheel/textures/`;
 
 export function preloadWheelModel(): void {
-  useLoader.preload(FBXLoader, WHEEL_MODEL, (loader) => {
-    loader.setResourcePath(WHEEL_TEXTURES);
-  });
+  try {
+    useLoader.preload(FBXLoader, WHEEL_MODEL, (loader) => {
+      loader.setResourcePath(WHEEL_TEXTURES);
+    });
+  } catch {
+    // ignore preload errors
+  }
 }
 
 function prepareWheelMesh(fbx: THREE.Group): number {

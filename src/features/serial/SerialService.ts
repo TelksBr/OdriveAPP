@@ -1,6 +1,16 @@
 import { HANDSHAKE_COMMAND, HANDSHAKE_TIMEOUT_MS, isControlPortReply, unwrapControlReply } from './serialPortProbe';
 import { isOdriveErrorReply } from './odriveErrors';
 import { sleep } from '../../shared/sleep';
+import {
+  isDesktopApp,
+  nativeAutoProbeOdrive,
+  nativeConnectSerial,
+  nativeDisconnectSerial,
+  nativeListPorts,
+  nativeOnSerialDisconnected,
+  nativeOnSerialRx,
+  nativeWriteSerial,
+} from './nativeSerialBridge';
 
 export type SerialEvent =
   | { type: 'connected'; firmware?: string }
@@ -14,6 +24,7 @@ export type SerialEvent =
 
 export type ConnectOptions = {
   port?: SerialPort;
+  portName?: string;
   /** When true (manual Connect), fall back to the browser port picker. Auto-reconnect must pass false. */
   allowPicker?: boolean;
 };
@@ -50,6 +61,17 @@ export class SerialService {
   private consecutiveTimeouts = 0;
   private queue: Promise<unknown> = Promise.resolve();
   private sessionOp: Promise<unknown> = Promise.resolve();
+  private unlistenNativeRx: (() => void) | null = null;
+  private unlistenNativeDisconnect: (() => void) | null = null;
+  private dfuMode = false;
+
+  setDfuMode(active: boolean): void {
+    this.dfuMode = active;
+  }
+
+  isDfuMode(): boolean {
+    return this.dfuMode;
+  }
 
   /** True only after `sys.swver?` handshake succeeds — not merely after `port.open()`. */
   get isConnected(): boolean {
@@ -92,6 +114,10 @@ export class SerialService {
   }
 
   private async connectNow(options: ConnectOptions): Promise<void> {
+    if (isDesktopApp()) {
+      await this.connectNative(options.portName);
+      return;
+    }
     if (!navigator.serial) {
       throw new Error('Web Serial is not available');
     }
@@ -138,6 +164,28 @@ export class SerialService {
   }
 
   private async reconnectKnownPortNow(maxAttempts: number, delayMs: number): Promise<boolean> {
+    if (this.dfuMode) {
+      return false;
+    }
+    if (isDesktopApp()) {
+      if (this.live) {
+        return true;
+      }
+      for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+        try {
+          this.logInfo(`reconnect native attempt ${attempt + 1}/${maxAttempts}`);
+          await this.connectNative();
+          this.logInfo('reconnect: native success');
+          return true;
+        } catch (error) {
+          const msg = error instanceof Error ? error.message : String(error);
+          this.logInfo(`reconnect: attempt failed — ${msg}`);
+          await sleep(delayMs);
+        }
+      }
+      return false;
+    }
+
     if (!navigator.serial) {
       return false;
     }
@@ -192,8 +240,19 @@ export class SerialService {
     return this.enqueue(() => this.writeOdriveNow(command, log));
   }
 
-  async writeOdriveNow(command: string, log = true): Promise<string | undefined> {
+  private async sendRawLine(line: string): Promise<void> {
+    if (isDesktopApp()) {
+      await nativeWriteSerial(`${line}\n`);
+      return;
+    }
     if (!this.writer) {
+      throw new Error('Serial is not connected');
+    }
+    await this.writer.write(this.encoder.encode(`${line}\n`));
+  }
+
+  async writeOdriveNow(command: string, log = true): Promise<string | undefined> {
+    if (!isDesktopApp() && !this.writer) {
       throw new Error('Serial is not connected');
     }
 
@@ -205,7 +264,7 @@ export class SerialService {
     if (log) {
       this.emit({ type: 'tx', line: cleanCommand });
     }
-    await this.writer.write(this.encoder.encode(`${cleanCommand}\n`));
+    await this.sendRawLine(cleanCommand);
 
     return new Promise<string | undefined>((resolve, reject) => {
       const entry: PendingCommand = {
@@ -310,8 +369,84 @@ export class SerialService {
       await port.close().catch(() => undefined);
     }
 
+    if (isDesktopApp()) {
+      if (this.unlistenNativeRx) {
+        this.unlistenNativeRx();
+        this.unlistenNativeRx = null;
+      }
+      if (this.unlistenNativeDisconnect) {
+        this.unlistenNativeDisconnect();
+        this.unlistenNativeDisconnect = null;
+      }
+      await nativeDisconnectSerial().catch(() => undefined);
+    }
+
     if (options.emitDisconnected && wasLive) {
       this.emit({ type: 'disconnected' });
+    }
+  }
+
+  private async connectNative(targetPortName?: string): Promise<void> {
+    await this.teardown({ emitDisconnected: this.live });
+    this.logInfo('connect: scanning native serial ports');
+
+    let portName = targetPortName;
+    if (!portName) {
+      const saved = localStorage.getItem('wheelforge-selected-com-port');
+      const ports = await nativeListPorts();
+      if (saved && ports.some((p) => p.name === saved)) {
+        portName = saved;
+      } else {
+        const probed = await nativeAutoProbeOdrive().catch(() => null);
+        if (probed && ports.some((p) => p.name === probed)) {
+          portName = probed;
+        }
+      }
+    }
+
+    if (!portName) {
+      throw new Error('serialNoLivePort');
+    }
+
+    this.logInfo(`connect: native connecting to ${portName}`);
+
+    if (this.unlistenNativeRx) {
+      this.unlistenNativeRx();
+    }
+    this.unlistenNativeRx = await nativeOnSerialRx((line) => {
+      this.resolveNext(line);
+    });
+
+    if (this.unlistenNativeDisconnect) {
+      this.unlistenNativeDisconnect();
+    }
+    this.unlistenNativeDisconnect = await nativeOnSerialDisconnected(() => {
+      void this.teardown({ emitDisconnected: true });
+    });
+
+    await nativeConnectSerial(portName);
+    this.closing = false;
+    this.readBuffer = '';
+    this.consecutiveTimeouts = 0;
+
+    try {
+      const raw = await this.commandNow(HANDSHAKE_COMMAND, true, HANDSHAKE_TIMEOUT_MS, true);
+      if (!isControlPortReply(raw)) {
+        throw new Error('serialHandshakeFailed');
+      }
+      this.live = true;
+      this.consecutiveTimeouts = 0;
+      localStorage.setItem('wheelforge-selected-com-port', portName);
+      this.emit({ type: 'connected', firmware: unwrapControlReply(raw) });
+    } catch (error) {
+      if (localStorage.getItem('wheelforge-selected-com-port') === portName) {
+        localStorage.removeItem('wheelforge-selected-com-port');
+      }
+      await this.teardown({ emitDisconnected: false });
+      if (error instanceof Error && error.message === 'serialHandshakeFailed') {
+        throw error;
+      }
+      throw new Error('serialHandshakeFailed');
     }
   }
 
@@ -402,7 +537,7 @@ export class SerialService {
   }
 
   private async sendCommandNow(command: string, expectReply = true, timeoutMs = 2000, log = true): Promise<string> {
-    if (!this.writer) {
+    if (!isDesktopApp() && !this.writer) {
       throw new Error('Serial is not connected');
     }
 
@@ -415,7 +550,7 @@ export class SerialService {
       if (log) {
         this.emit({ type: 'tx', line: cleanCommand });
       }
-      await this.writer.write(this.encoder.encode(`${cleanCommand}\n`));
+      await this.sendRawLine(cleanCommand);
       return '';
     }
 
@@ -438,7 +573,7 @@ export class SerialService {
       if (log) {
         this.emit({ type: 'tx', line: cleanCommand });
       }
-      void this.writer!.write(this.encoder.encode(`${cleanCommand}\n`)).catch((error: unknown) => {
+      void this.sendRawLine(cleanCommand).catch((error: unknown) => {
         this.rejectOnePending(entry, error instanceof Error ? error.message : String(error));
       });
     });

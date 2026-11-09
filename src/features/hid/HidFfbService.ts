@@ -1,3 +1,11 @@
+import { isDesktopApp } from '../serial/nativeSerialBridge';
+import {
+  nativeConnectHid,
+  nativeDisconnectHid,
+  nativeOnHidReport,
+  nativeSendHidReport,
+} from './nativeHidBridge';
+
 const OPENFFBOARD_VENDOR_ID  = 0x1209;
 const ODRIVE_WHEEL_PRODUCT_ID = 0x0d40;
 
@@ -124,6 +132,10 @@ const EMPTY_RUNNING: Record<EffectKey, boolean> = {
 /* ── Service ─────────────────────────────────────────────────────────────── */
 export class HidFfbService {
   private device: HIDDevice | null = null;
+  private nativeConnected = false;
+  private nativeDeviceName = '';
+  private nativeUnlisten: (() => void) | null = null;
+  private nativeInputListeners = new Set<(event: { reportId: number; data: DataView }) => void>();
   private running: Record<EffectKey, boolean> = { ...EMPTY_RUNNING };
   private connectionListeners = new Set<ConnectionListener>();
   private disconnectHandler: (() => void) | null = null;
@@ -141,6 +153,9 @@ export class HidFfbService {
   }
 
   get connected(): boolean {
+    if (isDesktopApp()) {
+      return this.nativeConnected;
+    }
     return Boolean(this.device?.opened);
   }
 
@@ -151,7 +166,9 @@ export class HidFfbService {
   }
 
   private notifyConnection(connected: boolean, unplugged = false): void {
-    const deviceName = connected ? (this.device?.productName ?? '') : '';
+    const deviceName = connected
+      ? (isDesktopApp() ? this.nativeDeviceName : (this.device?.productName ?? ''))
+      : '';
     for (const listener of this.connectionListeners) {
       listener(connected, deviceName, unplugged);
     }
@@ -178,7 +195,7 @@ export class HidFfbService {
 
   /** Stop every firmware effect slot — ignores local running flags (firmware may still be active). */
   private async stopAllOnDevice(): Promise<void> {
-    if (!this.device?.opened) {
+    if (!this.connected) {
       return;
     }
     for (const key of EFFECT_KEYS) {
@@ -196,6 +213,30 @@ export class HidFfbService {
   }
 
   async connect(): Promise<string> {
+    if (isDesktopApp()) {
+      const dev = await nativeConnectHid(OPENFFBOARD_VENDOR_ID, ODRIVE_WHEEL_PRODUCT_ID);
+      this.nativeConnected = true;
+      this.nativeDeviceName = `OpenFFBoard FFB Wheel (${dev})`;
+      if (this.nativeUnlisten) {
+        this.nativeUnlisten();
+      }
+      this.nativeUnlisten = await nativeOnHidReport((rawBytes) => {
+        if (rawBytes.length === 0) return;
+        const reportId = rawBytes[0];
+        const dataView = new DataView(rawBytes.buffer, rawBytes.byteOffset, rawBytes.byteLength);
+        const event = { reportId, data: dataView };
+        for (const listener of this.nativeInputListeners) {
+          listener(event);
+        }
+      });
+      await this.sendReport(0x0c, new Uint8Array([0x01]));
+      await this.sendReport(0x0d, new Uint8Array([255]));
+      await this.stopAllOnDevice();
+      this.clearRunningState();
+      this.notifyConnection(true);
+      return this.nativeDeviceName;
+    }
+
     if (!navigator.hid) {
       throw new Error('WebHID is not available');
     }
@@ -239,6 +280,18 @@ export class HidFfbService {
   }
 
   async disconnect(): Promise<void> {
+    if (isDesktopApp()) {
+      if (this.nativeUnlisten) {
+        this.nativeUnlisten();
+        this.nativeUnlisten = null;
+      }
+      this.nativeConnected = false;
+      this.nativeDeviceName = '';
+      await nativeDisconnectHid().catch(() => undefined);
+      this.clearRunningState();
+      this.notifyConnection(false);
+      return;
+    }
     const device = this.device;
     try {
       if (device?.opened) {
@@ -327,7 +380,7 @@ export class HidFfbService {
   }
 
   private async advanceLabRamp(stepMs: number): Promise<void> {
-    if (!this.device?.opened || !this.running.ra) {
+    if (!this.connected || !this.running.ra) {
       this.clearRampTimer();
       return;
     }
@@ -353,7 +406,7 @@ export class HidFfbService {
     if (key === 'ra') {
       this.clearRampTimer();
     }
-    if (this.device?.opened) {
+    if (this.connected) {
       await this.sendReport(0x0a, buildOp(BLOCK[key], 3, 0));
     }
     this.running[key] = false;
@@ -373,6 +426,10 @@ export class HidFfbService {
   }
 
   onInputReport(listener: (event: { reportId: number; data: DataView }) => void): () => void {
+    if (isDesktopApp()) {
+      this.nativeInputListeners.add(listener);
+      return () => this.nativeInputListeners.delete(listener);
+    }
     const device = this.device;
     if (!device) {
       return () => undefined;
@@ -390,6 +447,13 @@ export class HidFfbService {
   }
 
   private async sendReport(reportId: number, data: Uint8Array): Promise<void> {
+    if (isDesktopApp()) {
+      if (!this.nativeConnected) {
+        throw new Error('HID device is not connected');
+      }
+      await nativeSendHidReport(reportId, data);
+      return;
+    }
     if (!this.device?.opened) {
       throw new Error('HID device is not connected');
     }

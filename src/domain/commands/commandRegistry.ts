@@ -239,6 +239,27 @@ export const boardCommands: BoardCommand[] = [
     description: 'Compact FFB status line from the slim OpenFFBoard layer.',
   },
   {
+    id: 'ffbperf-read',
+    label: 'FFB loop performance',
+    command: 'sys.ffbperf?',
+    category: 'diagnostics',
+    description: 'FFB-loop execution timing budget, loop latency and overrun counters in microseconds.',
+  },
+  {
+    id: 'ffbperf-reset',
+    label: 'Reset FFB performance stats',
+    command: 'sys.ffbperf!',
+    category: 'diagnostics',
+    description: 'Reset FFB loop timing and overrun statistics.',
+  },
+  {
+    id: 'ffbcycles-read',
+    label: 'FFB loop cycles',
+    command: 'sys.ffbcycles?',
+    category: 'diagnostics',
+    description: 'Cycle-resolution maxima for sub-microsecond comparisons of calc and loop timing.',
+  },
+  {
     id: 'eeprom-test',
     label: 'EEPROM round-trip test',
     command: 'sys.eetest!',

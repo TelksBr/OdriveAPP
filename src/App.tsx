@@ -30,13 +30,85 @@ import { useWheelPositionPoll } from './features/wheel/useWheelPositionPoll';
 import { SidebarSearch } from './features/navigation/SidebarSearch';
 import { FieldFocusEffect } from './features/navigation/FieldFocusEffect';
 import { ToastHost } from './shared/ToastHost';
+import {
+  isDesktopApp,
+  nativeDetectRunningSim,
+  nativeEmergencyStop,
+  type SimGameInfo,
+} from './features/serial/nativeSerialBridge';
+import { serialService } from './features/serial/SerialService';
+import { hidFfbService } from './features/hid/HidFfbService';
+import { PortPickerModal } from './features/serial/PortPickerModal';
 
 function AppShell() {
   const { state, dispatch } = useAppState();
   const { pollingActive } = useObserveTelemetry();
   const [navQuery, setNavQuery] = useState('');
-  const { toggleConnection, phase } = useSerialSession();
+  const [detectedGame, setDetectedGame] = useState<SimGameInfo | null>(null);
+  const [portPickerOpen, setPortPickerOpen] = useState(false);
+  const [activePortName, setActivePortName] = useState<string | null>(
+    () => localStorage.getItem('wheelforge-selected-com-port')
+  );
+  const { toggleConnection, connectWithPort, phase } = useSerialSession();
   const { saveAll, saveButtonLabel, saveBadge } = useBoardSave();
+
+  function handleConnectClick() {
+    if (phase === 'live') {
+      void toggleConnection();
+      return;
+    }
+    if (isDesktopApp()) {
+      setPortPickerOpen(true);
+      return;
+    }
+    void toggleConnection();
+  }
+
+  async function handlePortSelected(portName: string) {
+    setActivePortName(portName);
+    await connectWithPort(portName);
+  }
+
+  useEffect(() => {
+    if (!isDesktopApp()) return;
+    let active = true;
+    const checkGame = async () => {
+      try {
+        const game = await nativeDetectRunningSim();
+        if (active) setDetectedGame(game);
+      } catch {
+        // ignore
+      }
+    };
+    void checkGame();
+    const timer = setInterval(() => void checkGame(), 4000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, []);
+
+  async function handleEmergencyStop() {
+    try {
+      if (isDesktopApp()) {
+        await nativeEmergencyStop();
+      } else {
+        await serialService.sendCommand('w axis0.requested_state 1', false);
+        await hidFfbService.stopAll();
+      }
+      dispatch({
+        type: 'append-log',
+        direction: 'error',
+        message: '🚨 PARADA DE EMERGÊNCIA DISPARADA — Motor desarmado (IDLE)',
+      });
+    } catch (e) {
+      dispatch({
+        type: 'append-log',
+        direction: 'error',
+        message: `Falha no E-Stop: ${e instanceof Error ? e.message : String(e)}`,
+      });
+    }
+  }
   const skipReadPaths = [...new Set([...state.dirtyPaths, ...state.nvmPendingPaths])];
   const skipReadKey = skipReadPaths.join('\0');
   const wheelPollActive = state.connected && !state.busy && state.activeTab !== 'calibration';
@@ -166,6 +238,16 @@ function AppShell() {
               <Pill tone={connectionStatusTone(phase)}>
                 {translate(state.locale, connectionStatusMessageKey(phase))}
               </Pill>
+              {isDesktopApp() && (
+                <Pill tone="neutral">
+                  Windows Native
+                </Pill>
+              )}
+              {detectedGame && (
+                <Pill tone="ok">
+                  🏎️ {detectedGame.name}
+                </Pill>
+              )}
               {state.busy && <Pill tone="warn">{translate(state.locale, 'busy')}</Pill>}
               {state.lastRefreshAt && (
                 <Pill tone="neutral">{translate(state.locale, 'refreshed')} {state.lastRefreshAt}</Pill>
@@ -219,13 +301,39 @@ function AppShell() {
 
             <PwaStatus locale={state.locale} />
 
+            {/* In desktop app, allow changing the COM port anytime */}
+            {isDesktopApp() && (
+              <button
+                type="button"
+                className="topbar-refresh-btn"
+                onClick={() => setPortPickerOpen(true)}
+                title="Selecionar porta COM serial"
+                style={{ fontSize: '12px' }}
+              >
+                🔌 {activePortName || 'Porta COM'}
+              </button>
+            )}
+
+            {/* E-Stop emergency cutoff */}
+            {state.connected && (
+              <button
+                type="button"
+                className="danger"
+                onClick={() => void handleEmergencyStop()}
+                title="Desarmar motor imediatamente (E-Stop)"
+                style={{ fontWeight: 'bold' }}
+              >
+                🚨 E-STOP
+              </button>
+            )}
+
             {/* Connect / Disconnect */}
             <button
               type="button"
               disabled={!state.serialSupported || phase === 'connecting'}
               className={phase === 'live' ? 'danger' : ''}
               title={phase === 'live' ? undefined : translate(state.locale, 'connectSerialTitle')}
-              onClick={() => void toggleConnection()}
+              onClick={() => void handleConnectClick()}
             >
               {phase === 'connecting'
                 ? translate(state.locale, 'serialConnecting')
@@ -235,6 +343,14 @@ function AppShell() {
         </header>
         <section className="content">{renderActiveTab()}</section>
       </main>
+
+      <PortPickerModal
+        open={portPickerOpen}
+        onClose={() => setPortPickerOpen(false)}
+        onSelectPort={handlePortSelected}
+        currentPort={activePortName}
+        busy={phase === 'connecting'}
+      />
     </div>
   );
 }

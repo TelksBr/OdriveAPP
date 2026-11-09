@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useReducer, type ReactNo
 import type { AppAction, AppState, TabId } from './types';
 import type { Locale } from '../i18n/messages';
 import { APP_STORAGE_PREFIX } from './brand';
+import { isDesktopApp } from '../features/serial/nativeSerialBridge';
 
 function readStoredLocale(): Locale | null {
   const value = localStorage.getItem(`${APP_STORAGE_PREFIX}-locale`)
@@ -34,9 +35,9 @@ const initialState: AppState = {
   locale: savedLocale ?? 'pt',
   connected: false,
   connecting: false,
-  serialSupported: 'serial' in navigator,
-  hidSupported: 'hid' in navigator,
-  usbSupported: 'usb' in navigator,
+  serialSupported: isDesktopApp() || ('serial' in navigator),
+  hidSupported: isDesktopApp() || ('hid' in navigator),
+  usbSupported: isDesktopApp() || ('usb' in navigator),
   busy: false,
   autoReconnect: savedAutoReconnect,
   reconnecting: false,
@@ -185,9 +186,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     function refreshCaps() {
       dispatch({
         type: 'set-capabilities',
-        serialSupported: 'serial' in navigator,
-        hidSupported: 'hid' in navigator,
-        usbSupported: 'usb' in navigator,
+        serialSupported: isDesktopApp() || ('serial' in navigator),
+        hidSupported: isDesktopApp() || ('hid' in navigator),
+        usbSupported: isDesktopApp() || ('usb' in navigator),
       });
     }
     window.addEventListener('focus', refreshCaps);

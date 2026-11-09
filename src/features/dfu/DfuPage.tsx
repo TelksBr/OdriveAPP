@@ -1,8 +1,9 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useAppState } from '../../app/AppState';
 import { translate } from '../../i18n/messages';
 import { rebootToDfuAndDisconnect } from '../board/boardLifecycle';
 import { clearOdriveRamPending } from '../board/persistPending';
+import { serialService } from '../serial/SerialService';
 import { dfuService } from './DfuService';
 import { toastKey } from '../../shared/toastActions';
 import { Card, Pill } from '../../shared/ui';
@@ -25,6 +26,20 @@ export function DfuPage() {
     },
     [dispatch],
   );
+
+  // Auto-detect if bootloader is already plugged in (e.g., page reload or manual reboot)
+  useEffect(() => {
+    let mounted = true;
+    void dfuService.checkBootloaderPresent().then((name) => {
+      if (mounted && name) {
+        setBootloader(name);
+        report(translate(state.locale, 'dfuBootloaderConnected', { name }));
+      }
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [report, state.locale]);
 
   async function run(action: () => Promise<void>) {
     dispatch({ type: 'set-busy', busy: true });
@@ -64,11 +79,39 @@ export function DfuPage() {
           disabled={!state.connected || state.busy}
           onClick={() =>
             void run(async () => {
+              serialService.setDfuMode(true);
+              report(translate(state.locale, 'dfuRebootSent'));
+              toastKey(dispatch, state.locale, 'dfuRebootSent', 'info');
+
               await rebootToDfuAndDisconnect();
               clearOdriveRamPending(dispatch);
               setBootloader('');
-              report(translate(state.locale, 'dfuRebootSent'));
-              toastKey(dispatch, state.locale, 'dfuRebootSent', 'info');
+
+              // Give STM32 3 seconds to reset and re-enumerate on the USB bus
+              for (let sec = 3; sec > 0; sec -= 1) {
+                report(`Aguardando USB do STM32 re-enumerar (${sec}s)...`);
+                await new Promise((r) => setTimeout(r, 1000));
+              }
+
+              // Automatically poll for bootloader
+              report('Detectando bootloader STM32 no barramento USB...');
+              let detected = '';
+              for (let attempt = 0; attempt < 8; attempt += 1) {
+                const name = await dfuService.checkBootloaderPresent();
+                if (name) {
+                  detected = name;
+                  break;
+                }
+                await new Promise((r) => setTimeout(r, 500));
+              }
+
+              if (detected) {
+                setBootloader(detected);
+                report(translate(state.locale, 'dfuBootloaderConnected', { name: detected }));
+                toastKey(dispatch, state.locale, 'dfuBootloaderConnected', 'ok');
+              } else {
+                report('Bootloader pronto. Clique em "Procurar bootloader" para conectar.');
+              }
             })
           }
         >
@@ -79,6 +122,7 @@ export function DfuPage() {
           disabled={!state.usbSupported || state.busy}
           onClick={() =>
             void run(async () => {
+              serialService.setDfuMode(true);
               const name = await dfuService.requestBootloader();
               setBootloader(name);
               report(translate(state.locale, 'dfuBootloaderConnected', { name }));
@@ -123,6 +167,7 @@ export function DfuPage() {
               }
               await dfuService.flash(firmware, report);
               setBootloader('');
+              serialService.setDfuMode(false);
               toastKey(dispatch, state.locale, 'dfuFlashComplete', 'ok');
               report(translate(state.locale, 'dfuFlashCompleteHint'));
             })

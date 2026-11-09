@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { Component, lazy, Suspense, type ReactNode } from 'react';
 import { useAppState } from '../../app/AppState';
 import { translate } from '../../i18n/messages';
 import { connectionPhase, connectionStatusMessageKey, connectionStatusTone } from '../serial/connectionStatus';
@@ -9,10 +9,33 @@ import { useDashboardLivePoll } from './useDashboardLivePoll';
 import { DashboardLiveMetrics } from './DashboardLiveMetrics';
 import { DashboardAnalogAxes } from './DashboardAnalogAxes';
 
+class WheelErrorBoundary extends Component<{ children: ReactNode; fallback?: ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: ReactNode; fallback?: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(err: Error) {
+    console.warn('Wheel 3D viewer failed to load, falling back to 2D view:', err);
+  }
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback ?? null;
+    }
+    return this.props.children;
+  }
+}
+
 // Lazy-load the heavy Three.js bundle into a separate chunk
 const WheelViewer = lazy(() =>
   import('./WheelViewer').then((m) => {
-    m.preloadWheelModel();
+    try {
+      m.preloadWheelModel();
+    } catch {
+      // ignore
+    }
     return { default: m.WheelViewer };
   }),
 );
@@ -57,20 +80,41 @@ export function DashboardPage() {
       <div className="dashboard-body">
         {/* ── Left — 3D viewer ──────────────────────────────────────── */}
         <div className="wheel-panel">
-          <Suspense
+          <WheelErrorBoundary
             fallback={
-              <div className="wheel-viewer wheel-viewer--loading-shell" style={{ height: 340 }}>
-                <div className="wheel-viewer-loading" aria-busy="true">
-                  <div className="wheel-viewer-spinner" />
-                  <span className="wheel-viewer-loading-label">
-                    {translate(state.locale, 'wheelModelLoading')}
-                  </span>
-                </div>
+              <div
+                className="wheel-viewer wheel-viewer--loading-shell"
+                style={{
+                  height: 340,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                }}
+              >
+                <div style={{ fontSize: '48px', opacity: 0.8 }}>🏎️</div>
+                <span className="muted" style={{ fontSize: '13px' }}>
+                  Visualizador 3D indisponível (Modo 2D ativo)
+                </span>
               </div>
             }
           >
-            <WheelViewer positionDegRef={live.positionDegRef} connected={state.connected} height={340} />
-          </Suspense>
+            <Suspense
+              fallback={
+                <div className="wheel-viewer wheel-viewer--loading-shell" style={{ height: 340 }}>
+                  <div className="wheel-viewer-loading" aria-busy="true">
+                    <div className="wheel-viewer-spinner" />
+                    <span className="wheel-viewer-loading-label">
+                      {translate(state.locale, 'wheelModelLoading')}
+                    </span>
+                  </div>
+                </div>
+              }
+            >
+              <WheelViewer positionDegRef={live.positionDegRef} connected={state.connected} height={340} />
+            </Suspense>
+          </WheelErrorBoundary>
 
           <DashboardAnalogAxes
             connected={state.connected}

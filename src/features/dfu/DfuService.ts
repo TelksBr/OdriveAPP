@@ -6,6 +6,8 @@ import {
   sectorsForImage,
   TRANSFER_SIZE,
 } from './dfuFlashPlan';
+import { isDesktopApp } from '../serial/nativeSerialBridge';
+import { nativeDetectDfuDevice, nativeFlashFirmware } from './nativeDfuBridge';
 
 const STM_VENDOR_ID = 0x0483;
 const STM_DFU_PRODUCT_ID = 0xdf11;
@@ -39,20 +41,83 @@ export type DfuProgress = (message: string, progress?: number) => void;
 export class DfuService {
   private device: USBDevice | null = null;
 
+  async checkBootloaderPresent(): Promise<string | null> {
+    if (isDesktopApp()) {
+      return nativeDetectDfuDevice();
+    }
+    if (typeof navigator === 'undefined' || !navigator.usb) {
+      return null;
+    }
+    try {
+      const devices = await navigator.usb.getDevices();
+      const stm = devices.find(
+        (d: USBDevice) => d.vendorId === STM_VENDOR_ID && d.productId === STM_DFU_PRODUCT_ID,
+      );
+      if (stm) {
+        return stm.productName || 'STM32 BOOTLOADER';
+      }
+    } catch {
+      // ignore
+    }
+    return null;
+  }
+
   async requestBootloader(): Promise<string> {
+    if (isDesktopApp()) {
+      const name = await nativeDetectDfuDevice();
+      if (!name) {
+        throw new Error('Dispositivo STM32 em modo DFU não detectado. Aguarde o bootloader inicializar no USB.');
+      }
+      return name;
+    }
+
     if (!navigator.usb) {
       throw new Error('WebUSB is not available');
     }
-    this.device = await navigator.usb.requestDevice({
-      filters: [{ vendorId: STM_VENDOR_ID, productId: STM_DFU_PRODUCT_ID }],
-    });
-    await this.device.open();
-    await this.device.selectConfiguration(1);
-    await this.device.claimInterface(0);
-    return this.device.productName || 'STM32 BOOTLOADER';
+
+    const granted = await navigator.usb.getDevices().catch(() => [] as USBDevice[]);
+    const existing = granted.find(
+      (d: USBDevice) => d.vendorId === STM_VENDOR_ID && d.productId === STM_DFU_PRODUCT_ID,
+    );
+
+    if (existing) {
+      this.device = existing;
+    } else {
+      this.device = await navigator.usb.requestDevice({
+        filters: [{ vendorId: STM_VENDOR_ID, productId: STM_DFU_PRODUCT_ID }],
+      });
+    }
+
+    const dev = this.device;
+    if (!dev) {
+      throw new Error('Nenhum dispositivo selecionado');
+    }
+
+    try {
+      if (!dev.opened) {
+        await dev.open();
+      }
+      if (dev.configuration?.configurationValue !== 1) {
+        try {
+          await dev.selectConfiguration(1);
+        } catch {
+          // OS or WinUSB driver already bound configuration 1
+        }
+      }
+      await dev.claimInterface(0);
+      return dev.productName || 'STM32 BOOTLOADER';
+    } catch (err) {
+      await this.releaseDevice();
+      throw err;
+    }
   }
 
   async flash(binary: ArrayBuffer, onProgress: DfuProgress): Promise<void> {
+    if (isDesktopApp()) {
+      await nativeFlashFirmware(binary, onProgress);
+      return;
+    }
+
     if (!this.device) {
       await this.requestBootloader();
     }
