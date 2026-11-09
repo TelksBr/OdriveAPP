@@ -64,11 +64,19 @@ export class DfuService {
 
   async requestBootloader(): Promise<string> {
     if (isDesktopApp()) {
-      const name = await nativeDetectDfuDevice();
-      if (!name) {
-        throw new Error('Dispositivo STM32 em modo DFU não detectado. Aguarde o bootloader inicializar no USB.');
+      // Allow up to 4 attempts if the device is currently re-enumerating
+      for (let attempt = 0; attempt < 4; attempt += 1) {
+        const name = await nativeDetectDfuDevice();
+        if (name) {
+          return name;
+        }
+        if (attempt < 3) {
+          await new Promise((r) => setTimeout(r, 1000));
+        }
       }
-      return name;
+      throw new Error(
+        'Dispositivo STM32 em modo DFU não detectado. Aguarde o bootloader inicializar no USB ou verifique o cabo.',
+      );
     }
 
     if (!navigator.usb) {
@@ -80,15 +88,36 @@ export class DfuService {
       (d: USBDevice) => d.vendorId === STM_VENDOR_ID && d.productId === STM_DFU_PRODUCT_ID,
     );
 
+    let dev: USBDevice | null = null;
     if (existing) {
-      this.device = existing;
-    } else {
-      this.device = await navigator.usb.requestDevice({
-        filters: [{ vendorId: STM_VENDOR_ID, productId: STM_DFU_PRODUCT_ID }],
-      });
+      try {
+        if (!existing.opened) {
+          await existing.open();
+        }
+        dev = existing;
+      } catch {
+        // Existing handle was stale from before USB reset — fallback to prompt
+        dev = null;
+      }
     }
 
-    const dev = this.device;
+    if (!dev) {
+      try {
+        dev = await navigator.usb.requestDevice({
+          filters: [{ vendorId: STM_VENDOR_ID, productId: STM_DFU_PRODUCT_ID }],
+        });
+      } catch (err) {
+        if (
+          err instanceof DOMException &&
+          (err.name === 'NotFoundError' || err.message.includes('No device selected'))
+        ) {
+          throw new Error('Nenhum dispositivo selecionado. Aguarde a re-enumeração e tente novamente.');
+        }
+        throw err;
+      }
+    }
+
+    this.device = dev;
     if (!dev) {
       throw new Error('Nenhum dispositivo selecionado');
     }

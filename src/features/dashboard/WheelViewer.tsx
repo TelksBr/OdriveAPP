@@ -1,4 +1,4 @@
-import { memo, Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { Component, memo, type ReactNode, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { Canvas, useFrame, useLoader, useThree } from '@react-three/fiber';
 import { PerspectiveCamera } from '@react-three/drei';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
@@ -247,6 +247,34 @@ const WheelScene = memo(function WheelScene({
   );
 });
 
+interface WheelErrorBoundaryProps {
+  children: ReactNode;
+  fallback: ReactNode;
+}
+
+interface WheelErrorBoundaryState {
+  hasError: boolean;
+}
+
+class WheelErrorBoundary extends Component<WheelErrorBoundaryProps, WheelErrorBoundaryState> {
+  state: WheelErrorBoundaryState = { hasError: false };
+
+  static getDerivedStateFromError(): WheelErrorBoundaryState {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error) {
+    console.warn('Wheel 3D viewer caught error, displaying fallback:', error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback;
+    }
+    return this.props.children;
+  }
+}
+
 export const WheelViewer = memo(function WheelViewer({
   positionDegRef,
   connected,
@@ -270,36 +298,73 @@ export const WheelViewer = memo(function WheelViewer({
       className="wheel-viewer"
       style={{ height, position: 'relative', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}
     >
-      <Canvas
-        frameloop={renderActive ? 'always' : 'never'}
-        dpr={wheelCanvasDpr(WHEEL_RENDER_SETTINGS)}
-        resize={{ scroll: false, debounce: { scroll: 0, resize: 0 } }}
-        gl={{
-          antialias: WHEEL_RENDER_SETTINGS.antialias,
-          alpha: true,
-          powerPreference: 'high-performance',
-          stencil: false,
-          depth: true,
-          failIfMajorPerformanceCaveat: false,
-        }}
-        onCreated={({ gl }) => {
-          gl.setPixelRatio(wheelCanvasDpr(WHEEL_RENDER_SETTINGS));
-          gl.outputColorSpace = THREE.SRGBColorSpace;
-          gl.toneMapping = THREE.ACESFilmicToneMapping;
-          gl.toneMappingExposure = WHEEL_RENDER_SETTINGS.toneMappingExposure;
-          gl.domElement.addEventListener('webglcontextlost', (e) => {
-            e.preventDefault();
-          });
-        }}
+      <WheelErrorBoundary
+        fallback={
+          <div
+            style={{
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: '#050508',
+              color: 'var(--text-muted, #888)',
+              fontSize: '0.875rem',
+            }}
+          >
+            <svg
+              width="64"
+              height="64"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ marginBottom: 8, opacity: 0.6 }}
+            >
+              <circle cx="12" cy="12" r="10" />
+              <circle cx="12" cy="12" r="3" />
+              <line x1="12" y1="2" x2="12" y2="9" />
+              <line x1="12" y1="15" x2="12" y2="22" />
+              <line x1="2" y1="12" x2="9" y2="12" />
+              <line x1="15" y1="12" x2="22" y2="12" />
+            </svg>
+            <span>Volante FFB ODrive</span>
+          </div>
+        }
       >
-        <WheelScene
-          positionDegRef={positionDegRef}
-          connected={connected}
-          settings={WHEEL_RENDER_SETTINGS}
-          modelReady={modelReady}
-          onModelReady={onModelReady}
-        />
-      </Canvas>
+        <Canvas
+          frameloop={renderActive ? 'always' : 'never'}
+          dpr={wheelCanvasDpr(WHEEL_RENDER_SETTINGS)}
+          resize={{ scroll: false, debounce: { scroll: 0, resize: 0 } }}
+          gl={{
+            antialias: WHEEL_RENDER_SETTINGS.antialias,
+            alpha: true,
+            powerPreference: 'high-performance',
+            stencil: false,
+            depth: true,
+            failIfMajorPerformanceCaveat: false,
+          }}
+          onCreated={({ gl }) => {
+            gl.setPixelRatio(wheelCanvasDpr(WHEEL_RENDER_SETTINGS));
+            gl.outputColorSpace = THREE.SRGBColorSpace;
+            gl.toneMapping = THREE.ACESFilmicToneMapping;
+            gl.toneMappingExposure = WHEEL_RENDER_SETTINGS.toneMappingExposure;
+            gl.domElement.addEventListener('webglcontextlost', (e) => {
+              e.preventDefault();
+            });
+          }}
+        >
+          <WheelScene
+            positionDegRef={positionDegRef}
+            connected={connected}
+            settings={WHEEL_RENDER_SETTINGS}
+            modelReady={modelReady}
+            onModelReady={onModelReady}
+          />
+        </Canvas>
+      </WheelErrorBoundary>
 
       {!modelReady && (
         <div className="wheel-viewer-loading" aria-busy="true" aria-live="polite">

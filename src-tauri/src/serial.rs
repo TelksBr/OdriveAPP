@@ -78,7 +78,10 @@ pub fn disconnect(state: &SerialState) -> Result<(), String> {
     state.is_connected.store(false, Ordering::SeqCst);
 
     let mut writer_guard = state.writer.lock().map_err(|e| e.to_string())?;
-    *writer_guard = None;
+    if let Some(mut port) = writer_guard.take() {
+        let _ = port.write_data_terminal_ready(false);
+        let _ = port.write_request_to_send(false);
+    }
 
     let mut port_guard = state.active_port.lock().map_err(|e| e.to_string())?;
     *port_guard = None;
@@ -96,10 +99,15 @@ pub fn connect(
     // Disconnect any existing session
     let _ = disconnect(state);
 
-    let port = serialport::new(port_name, baud_rate)
+    let mut port = serialport::new(port_name, baud_rate)
         .timeout(Duration::from_millis(50))
         .open()
         .map_err(|e| format!("Failed to open port {}: {}", port_name, e))?;
+
+    // Assert DTR and RTS so USB CDC ACM on STM32 / ODrive enables communication
+    let _ = port.write_data_terminal_ready(true);
+    let _ = port.write_request_to_send(true);
+    let _ = port.clear(serialport::ClearBuffer::All);
 
     // Clone port for reading
     let mut reader = port

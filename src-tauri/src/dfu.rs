@@ -73,22 +73,24 @@ pub fn detect_dfu_device() -> Result<Option<DfuDeviceInfo>, String> {
             .map_err(|e| format!("Falha ao executar STM32_Programmer_CLI: {}", e))?;
 
         let text = String::from_utf8_lossy(&output.stdout);
-        if text.contains("Total number of available STM32 device in DFU mode:") {
+        let lower = text.to_lowercase();
+        if lower.contains("available stm32 device in dfu mode") {
             let mut sn = None;
             let mut port = "usb1".to_string();
             let mut dev_count = 0;
 
             for line in text.lines() {
                 let trimmed = line.trim();
-                if trimmed.starts_with("Total number of available STM32 device in DFU mode:") {
+                let trimmed_lower = trimmed.to_lowercase();
+                if trimmed_lower.contains("available stm32 device in dfu mode") {
                     if let Some(count_str) = trimmed.split(':').nth(1) {
                         dev_count = count_str.trim().parse::<u32>().unwrap_or(0);
                     }
-                } else if trimmed.starts_with("Serial number") {
+                } else if trimmed_lower.contains("serial number") {
                     if let Some(val) = trimmed.split(':').nth(1) {
                         sn = Some(val.trim().to_string());
                     }
-                } else if trimmed.starts_with("Device Index") {
+                } else if trimmed_lower.contains("device index") {
                     if let Some(val) = trimmed.split(':').nth(1) {
                         port = val.trim().to_lowercase();
                     }

@@ -36,8 +36,27 @@ export function DfuPage() {
         report(translate(state.locale, 'dfuBootloaderConnected', { name }));
       }
     });
+
+    const onUsbConnect = (event: Event) => {
+      const usbEvent = event as { device?: { vendorId: number; productId: number; productName?: string } };
+      if (usbEvent.device?.vendorId === 0x0483 && usbEvent.device?.productId === 0xdf11) {
+        if (mounted) {
+          const name = usbEvent.device.productName || 'STM32 BOOTLOADER';
+          setBootloader(name);
+          report(translate(state.locale, 'dfuBootloaderConnected', { name }));
+        }
+      }
+    };
+
+    if (typeof navigator !== 'undefined' && 'usb' in navigator && navigator.usb) {
+      navigator.usb.addEventListener('connect', onUsbConnect);
+    }
+
     return () => {
       mounted = false;
+      if (typeof navigator !== 'undefined' && 'usb' in navigator && navigator.usb) {
+        navigator.usb.removeEventListener('connect', onUsbConnect);
+      }
     };
   }, [report, state.locale]);
 
@@ -80,8 +99,7 @@ export function DfuPage() {
           onClick={() =>
             void run(async () => {
               serialService.setDfuMode(true);
-              report(translate(state.locale, 'dfuRebootSent'));
-              toastKey(dispatch, state.locale, 'dfuRebootSent', 'info');
+              report('Reiniciando placa em modo DFU...');
 
               await rebootToDfuAndDisconnect();
               clearOdriveRamPending(dispatch);
@@ -89,20 +107,20 @@ export function DfuPage() {
 
               // Give STM32 3 seconds to reset and re-enumerate on the USB bus
               for (let sec = 3; sec > 0; sec -= 1) {
-                report(`Aguardando USB do STM32 re-enumerar (${sec}s)...`);
+                report(`Aguardando re-enumeração USB do STM32 (${sec}s)...`);
                 await new Promise((r) => setTimeout(r, 1000));
               }
 
               // Automatically poll for bootloader
               report('Detectando bootloader STM32 no barramento USB...');
               let detected = '';
-              for (let attempt = 0; attempt < 8; attempt += 1) {
+              for (let attempt = 0; attempt < 10; attempt += 1) {
                 const name = await dfuService.checkBootloaderPresent();
                 if (name) {
                   detected = name;
                   break;
                 }
-                await new Promise((r) => setTimeout(r, 500));
+                await new Promise((r) => setTimeout(r, 600));
               }
 
               if (detected) {
@@ -110,7 +128,8 @@ export function DfuPage() {
                 report(translate(state.locale, 'dfuBootloaderConnected', { name: detected }));
                 toastKey(dispatch, state.locale, 'dfuBootloaderConnected', 'ok');
               } else {
-                report('Bootloader pronto. Clique em "Procurar bootloader" para conectar.');
+                report('Bootloader pronto no USB. Clique em "Procurar bootloader" para conectar.');
+                toastKey(dispatch, state.locale, 'dfuRebootSent', 'info');
               }
             })
           }
