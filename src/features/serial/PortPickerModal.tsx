@@ -158,7 +158,7 @@ export function PortPickerModal({
                     </div>
                     <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>
                       {p.product || 'Porta de comunicação'} {p.manufacturer ? `(${p.manufacturer})` : ''}
-                      {p.vid !== undefined && p.pid !== undefined && (
+                      {typeof p.vid === 'number' && typeof p.pid === 'number' && (
                         <span style={{ marginLeft: '6px', fontFamily: 'var(--mono)', opacity: 0.8 }}>
                           [{`0x${p.vid.toString(16).padStart(4, '0')}:0x${p.pid.toString(16).padStart(4, '0')}`}]
                         </span>

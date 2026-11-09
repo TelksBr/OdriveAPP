@@ -499,8 +499,8 @@ export class SerialService {
     if (!info || (info.usbVendorId === undefined && info.usbProductId === undefined)) {
       return null;
     }
-    const vendor = info.usbVendorId !== undefined ? `0x${info.usbVendorId.toString(16)}` : '?';
-    const product = info.usbProductId !== undefined ? `0x${info.usbProductId.toString(16)}` : '?';
+    const vendor = typeof info.usbVendorId === 'number' ? `0x${info.usbVendorId.toString(16)}` : '?';
+    const product = typeof info.usbProductId === 'number' ? `0x${info.usbProductId.toString(16)}` : '?';
     return `${vendor}:${product}`;
   }
 

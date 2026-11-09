@@ -3,11 +3,11 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 
 export interface NativePortDetail {
   name: string;
-  vid?: number;
-  pid?: number;
-  manufacturer?: string;
-  product?: string;
-  serialNumber?: string;
+  vid?: number | null;
+  pid?: number | null;
+  manufacturer?: string | null;
+  product?: string | null;
+  serialNumber?: string | null;
 }
 
 export interface SimGameInfo {
