@@ -9,6 +9,7 @@ import {
   nativeListPorts,
   nativeOnSerialDisconnected,
   nativeOnSerialRx,
+  nativeQuerySerial,
   nativeWriteSerial,
 } from './nativeSerialBridge';
 
@@ -552,6 +553,27 @@ export class SerialService {
       }
       await this.sendRawLine(cleanCommand);
       return '';
+    }
+
+    if (isDesktopApp()) {
+      if (log) {
+        this.emit({ type: 'tx', line: cleanCommand });
+      }
+      try {
+        const reply = await nativeQuerySerial(cleanCommand, timeoutMs);
+        this.consecutiveTimeouts = 0;
+        if (log) {
+          this.emit({ type: 'rx', line: reply, command: cleanCommand });
+        }
+        return reply;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        this.consecutiveTimeouts += 1;
+        if (this.consecutiveTimeouts >= 5) {
+          this.emit({ type: 'link-dead', message: 'Múltiplos timeouts seriais consecutivos' });
+        }
+        throw new Error(msg);
+      }
     }
 
     return new Promise<string>((resolve, reject) => {

@@ -42,6 +42,19 @@ fn write_serial(state: State<'_, AppContext>, data: String) -> Result<(), String
 }
 
 #[tauri::command]
+fn query_serial(
+    state: State<'_, AppContext>,
+    command: String,
+    timeout_ms: Option<u64>,
+) -> Result<String, String> {
+    serial::query_str(
+        &state.serial,
+        &command,
+        std::time::Duration::from_millis(timeout_ms.unwrap_or(2000)),
+    )
+}
+
+#[tauri::command]
 fn auto_probe_odrive(app: AppHandle, state: State<'_, AppContext>) -> Result<Option<String>, String> {
     serial::auto_probe(app, &state.serial)
 }
@@ -151,6 +164,7 @@ pub fn run() {
             connect_serial,
             disconnect_serial,
             write_serial,
+            query_serial,
             auto_probe_odrive,
             list_hid_devices,
             connect_hid,

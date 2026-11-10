@@ -28,13 +28,13 @@ export function wheelComposerDpr(settings: WheelRenderSettings): number {
 
 /** High-quality preset for the dashboard wheel preview. */
 export const WHEEL_RENDER_SETTINGS: WheelRenderSettings = {
-  maxDpr: 2,
-  supersample: 2,
+  maxDpr: 1.5,
+  supersample: 1,
   antialias: false,
   smaa: true,
   toneMappingExposure: 1,
   environmentIntensity: 1,
-  maxAnisotropy: 16,
+  maxAnisotropy: 8,
   normalScale: 1,
-  envMapResolution: 1024,
+  envMapResolution: 512,
 };

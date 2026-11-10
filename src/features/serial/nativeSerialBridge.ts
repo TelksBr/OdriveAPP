@@ -48,6 +48,11 @@ export async function nativeWriteSerial(data: string): Promise<void> {
   return invoke<void>('write_serial', { data });
 }
 
+export async function nativeQuerySerial(command: string, timeoutMs = 2000): Promise<string> {
+  if (!isDesktopApp()) throw new Error('Not running in native desktop mode');
+  return invoke<string>('query_serial', { command, timeoutMs });
+}
+
 export async function nativeAutoProbeOdrive(): Promise<string | null> {
   if (!isDesktopApp()) return null;
   return invoke<string | null>('auto_probe_odrive');
