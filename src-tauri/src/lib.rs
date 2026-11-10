@@ -9,7 +9,7 @@ use hid::{HidDeviceDetail, HidState};
 use serial::{PortDetail, SerialState};
 use sim_games::SimGameInfo;
 use std::sync::Arc;
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, State};
 
 pub struct AppContext {
     pub serial: Arc<SerialState>,
@@ -152,10 +152,6 @@ pub fn run() {
 
             // Setup system tray
             let _ = tray::setup_tray(app.handle());
-
-            if let Some(window) = app.get_webview_window("main") {
-                let _ = window.open_devtools();
-            }
 
             Ok(())
         })
