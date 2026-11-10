@@ -23,6 +23,24 @@ import {
 const WHEEL_MODEL = `${import.meta.env.BASE_URL}models/wheel.fbx`;
 const WHEEL_TEXTURES = `${import.meta.env.BASE_URL}models/wheel/textures/`;
 
+// Suppress benign internal Three.js deprecation/loader warnings (Clock, FBX Phong textures, HLSL shader log)
+if (typeof window !== 'undefined' && !(window as unknown as { __three_warn_filtered?: boolean }).__three_warn_filtered) {
+  (window as unknown as { __three_warn_filtered?: boolean }).__three_warn_filtered = true;
+  const originalWarn = console.warn;
+  console.warn = (...args: unknown[]) => {
+    const first = typeof args[0] === 'string' ? args[0] : '';
+    if (
+      first.includes('THREE.Clock') ||
+      first.includes('THREE.FBXLoader') ||
+      first.includes('THREE.sigmaRadians') ||
+      first.includes('THREE.WebGLProgram')
+    ) {
+      return;
+    }
+    originalWarn.apply(console, args);
+  };
+}
+
 export function preloadWheelModel(): void {
   try {
     useLoader.preload(FBXLoader, WHEEL_MODEL, (loader) => {
@@ -69,9 +87,7 @@ function WheelEnvironment({ settings }: { settings: WheelRenderSettings }) {
     pmrem.compileEquirectangularShader();
 
     const room = new RoomEnvironment();
-    const envMap = pmrem.fromScene(room, 0.04, 0.1, 100, {
-      size: settings.envMapResolution,
-    }).texture;
+    const envMap = pmrem.fromScene(room).texture;
     scene.environment = envMap;
     if ('environmentIntensity' in scene) {
       (scene as THREE.Scene & { environmentIntensity: number }).environmentIntensity =
@@ -85,7 +101,7 @@ function WheelEnvironment({ settings }: { settings: WheelRenderSettings }) {
       envMap.dispose();
       pmrem.dispose();
     };
-  }, [gl, scene, settings.envMapResolution, settings.environmentIntensity]);
+  }, [gl, scene, settings.environmentIntensity]);
 
   return null;
 }
