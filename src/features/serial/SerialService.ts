@@ -265,7 +265,6 @@ export class SerialService {
     if (log) {
       this.emit({ type: 'tx', line: cleanCommand });
     }
-    await this.sendRawLine(cleanCommand);
 
     return new Promise<string | undefined>((resolve, reject) => {
       const entry: PendingCommand = {
@@ -280,15 +279,29 @@ export class SerialService {
         timeoutId: 0,
       };
 
-      entry.timeoutId = window.setTimeout(() => {
+      // Register before transmitting: firmware can return an ODrive error
+      // immediately, including before the transport write promise resolves.
+      this.pending.push(entry);
+
+      void this.sendRawLine(cleanCommand).then(() => {
+        // A fast error reply can settle and remove the pending entry before the
+        // write promise resolves. Only arm the silent-success timeout if it is
+        // still waiting for a response.
+        if (!this.pending.includes(entry)) return;
+        entry.timeoutId = window.setTimeout(() => {
+          const index = this.pending.indexOf(entry);
+          if (index >= 0) {
+            this.pending.splice(index, 1);
+          }
+          resolve(undefined);
+        }, 80);
+      }).catch((error: unknown) => {
         const index = this.pending.indexOf(entry);
         if (index >= 0) {
           this.pending.splice(index, 1);
+          reject(error instanceof Error ? error : new Error(String(error)));
         }
-        resolve(undefined);
-      }, 80);
-
-      this.pending.push(entry);
+      });
     });
   }
 

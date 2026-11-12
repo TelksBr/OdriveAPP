@@ -21,6 +21,8 @@ describe('isOdriveErrorReply', () => {
     expect(isOdriveErrorReply('invalid property')).toBe(true);
     expect(isOdriveErrorReply('not implemented')).toBe(true);
     expect(isOdriveErrorReply('err_axis')).toBe(true);
+    expect(isOdriveErrorReply('[axis.maxtq=bad|ERR]')).toBe(true);
+    expect(isOdriveErrorReply('[axis.maxtq=bad|invalid property]')).toBe(true);
   });
 
   test('ignores numeric and version replies', () => {
