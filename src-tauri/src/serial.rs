@@ -1,3 +1,4 @@
+use crate::serial_lines::{route_query_lines, SerialLineBuffer};
 use serde::{Deserialize, Serialize};
 use serialport::SerialPortType;
 use std::io::{Read, Write};
@@ -138,7 +139,7 @@ pub fn connect(
 
     thread::spawn(move || {
         let mut read_buf = [0u8; 1024];
-        let mut unsolicited_line = String::new();
+        let mut line_buffer = SerialLineBuffer::default();
 
         loop {
             // Wait for outgoing requests with short timeout to also process any incoming unsolicited data
@@ -149,6 +150,9 @@ pub fn connect(
                     timeout,
                 }) => {
                     // 1. Clear any leftover unread noise in buffer
+                    // Discard an incomplete unsolicited line too, so its tail
+                    // cannot be mistaken for this command's response.
+                    let _ = line_buffer.take_partial();
                     let _ = port.clear(serialport::ClearBuffer::Input);
 
                     // 2. Transmit command
@@ -165,24 +169,20 @@ pub fn connect(
 
                     // 3. Read response until newline or timeout
                     let start = Instant::now();
-                    let mut line = String::new();
                     let mut got_reply = false;
 
                     while start.elapsed() < timeout {
                         match port.read(&mut read_buf) {
                             Ok(n) if n > 0 => {
-                                let text = String::from_utf8_lossy(&read_buf[..n]);
-                                for ch in text.chars() {
-                                    if ch == '\n' {
-                                        let trimmed = line.trim().to_string();
-                                        if !trimmed.is_empty() {
-                                            got_reply = true;
-                                            let _ = responder.send(Ok(trimmed));
-                                            break;
-                                        }
-                                    } else if ch != '\r' {
-                                        line.push(ch);
-                                    }
+                                let (reply, unsolicited) =
+                                    route_query_lines(line_buffer.push(&read_buf[..n]), got_reply);
+                                if let Some(reply) = reply {
+                                    got_reply = true;
+                                    let _ = responder.send(Ok(reply));
+                                }
+                                for line in unsolicited {
+                                    let _ =
+                                        app_handle.emit("serial-rx", SerialEventPayload { line });
                                 }
                                 if got_reply {
                                     break;
@@ -203,7 +203,8 @@ pub fn connect(
                     }
 
                     if !got_reply {
-                        let _ = responder.send(Err(format!("Timeout waiting for reply to: {}", command)));
+                        let _ = responder
+                            .send(Err(format!("Timeout waiting for reply to: {}", command)));
                     }
                 }
                 Ok(SerialRequest::Write { data }) => {
@@ -223,20 +224,8 @@ pub fn connect(
                     // Check for any unsolicited messages
                     match port.read(&mut read_buf) {
                         Ok(n) if n > 0 => {
-                            let text = String::from_utf8_lossy(&read_buf[..n]);
-                            for ch in text.chars() {
-                                if ch == '\n' {
-                                    let trimmed = unsolicited_line.trim().to_string();
-                                    unsolicited_line.clear();
-                                    if !trimmed.is_empty() {
-                                        let _ = app_handle.emit(
-                                            "serial-rx",
-                                            SerialEventPayload { line: trimmed },
-                                        );
-                                    }
-                                } else if ch != '\r' {
-                                    unsolicited_line.push(ch);
-                                }
+                            for line in line_buffer.push(&read_buf[..n]) {
+                                let _ = app_handle.emit("serial-rx", SerialEventPayload { line });
                             }
                         }
                         _ => {}

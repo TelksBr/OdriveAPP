@@ -1,6 +1,7 @@
 mod dfu;
 mod hid;
 mod serial;
+mod serial_lines;
 mod sim_games;
 mod tray;
 
