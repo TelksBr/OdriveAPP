@@ -66,6 +66,7 @@ export class SerialService {
   private unlistenNativeRx: (() => void) | null = null;
   private unlistenNativeDisconnect: (() => void) | null = null;
   private dfuMode = false;
+  private nativeWrite = nativeWriteSerial;
 
   setDfuMode(active: boolean): void {
     this.dfuMode = active;
@@ -244,7 +245,7 @@ export class SerialService {
 
   private async sendRawLine(line: string): Promise<void> {
     if (isDesktopApp()) {
-      await nativeWriteSerial(`${line}\n`);
+      await this.nativeWrite(`${line}\n`);
       return;
     }
     if (!this.writer) {

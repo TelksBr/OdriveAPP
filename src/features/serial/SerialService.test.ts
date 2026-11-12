@@ -40,6 +40,27 @@ describe('SerialService ODrive writes', () => {
     );
   });
 
+  test('rejects a native silent write when the COM worker reports a write failure', async () => {
+    Object.defineProperty(globalThis, 'window', {
+      configurable: true,
+      value: {
+        __TAURI_INTERNALS__: {},
+        location: { hostname: 'tauri.localhost', protocol: 'http:' },
+        setTimeout: globalThis.setTimeout.bind(globalThis),
+        clearTimeout: globalThis.clearTimeout.bind(globalThis),
+      },
+    });
+
+    const service = new SerialService();
+    const internals = service as unknown as {
+      nativeWrite: (data: string) => Promise<void>;
+    };
+    internals.nativeWrite = async () => { throw new Error('Serial write failed: COM port removed'); };
+
+    await expect(service.writeOdriveNow('w axis0.requested_state 1', false))
+      .rejects.toThrow('Serial write failed: COM port removed');
+  });
+
   test('PWA reader keeps multiple and fragmented lines from serial chunks', () => {
     const service = new SerialService();
     const received: string[] = [];

@@ -36,9 +36,18 @@ export async function nativeSendHidReport(reportId: number, data: Uint8Array | n
 
 export async function nativeOnHidReport(callback: (data: Uint8Array) => void): Promise<UnlistenFn> {
   if (!isDesktopApp()) return () => undefined;
-  return listen<{ data: number[] }>('hid-input-report', (event) => {
-    callback(new Uint8Array(event.payload.data));
+  return listen<{ reports: number[][] }>('hid-input-report', (event) => {
+    dispatchNativeHidReportBatch(event.payload.reports, callback);
   });
+}
+
+export function dispatchNativeHidReportBatch(
+  reports: readonly (readonly number[])[],
+  callback: (data: Uint8Array) => void,
+): void {
+  for (const report of reports) {
+    callback(new Uint8Array(report));
+  }
 }
 
 export async function nativeOnHidDisconnected(callback: () => void): Promise<UnlistenFn> {

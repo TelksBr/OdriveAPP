@@ -39,6 +39,7 @@ import {
 import { serialService } from './features/serial/SerialService';
 import { hidFfbService } from './features/hid/HidFfbService';
 import { PortPickerModal } from './features/serial/PortPickerModal';
+import { requestAndConfirmIdle, runEmergencyStop } from './features/commands/emergencyStop';
 
 function AppShell() {
   const { state, dispatch } = useAppState();
@@ -93,8 +94,11 @@ function AppShell() {
       if (isDesktopApp()) {
         await nativeEmergencyStop();
       } else {
-        await serialService.sendCommand('w axis0.requested_state 1', false);
-        await hidFfbService.stopAll();
+        await runEmergencyStop({
+          requestIdle: () => requestAndConfirmIdle((command, expectReply, timeoutMs, log) =>
+            serialService.sendCommand(command, expectReply, timeoutMs, log)),
+          stopFfb: () => hidFfbService.stopAll(),
+        });
       }
       dispatch({
         type: 'append-log',

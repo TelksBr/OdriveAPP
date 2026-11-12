@@ -77,4 +77,41 @@ describe('HID PID effect gain', () => {
     expect(service.isRunning('fr')).toBe(false);
     expect(connectionEvents.at(-1)).toEqual([false, '', true]);
   });
+
+  test('keeps every effect report sequence contiguous during rapid concurrent updates', async () => {
+    const reports: number[] = [];
+    const service = new HidFfbService();
+    const internals = service as unknown as {
+      device: { opened: boolean; sendReport: (reportId: number, data: Uint8Array) => Promise<void> } | null;
+      running: Record<EffectKey, boolean>;
+    };
+    internals.device = {
+      opened: true,
+      sendReport: async (reportId) => {
+        await new Promise((resolve) => setTimeout(resolve, 1));
+        reports.push(reportId);
+      },
+    };
+    internals.running = { cf: false, sp: false, da: false, fr: false, si: false, ra: false };
+
+    await Promise.all([
+      service.startEffect('fr', { pct: 20 }),
+      service.startEffect('si', { pct: 30, frequencyHz: 15 }),
+    ]);
+
+    expect(reports).toEqual([0x01, 0x03, 0x0a, 0x01, 0x04, 0x0a]);
+  });
+
+  test('fails stopAll when an output report could not be delivered', async () => {
+    const service = new HidFfbService();
+    const internals = service as unknown as {
+      device: { opened: boolean; sendReport: (reportId: number, data: Uint8Array) => Promise<void> } | null;
+    };
+    internals.device = {
+      opened: true,
+      sendReport: async () => { throw new Error('device removed'); },
+    };
+
+    await expect(service.stopAll()).rejects.toThrow('Failed to stop all HID effects: device removed');
+  });
 });

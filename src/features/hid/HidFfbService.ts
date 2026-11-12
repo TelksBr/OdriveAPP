@@ -152,6 +152,13 @@ export class HidFfbService {
   private rampStepTimer: ReturnType<typeof setTimeout> | null = null;
   private rampTargetMag = 0;
   private rampStep = 0;
+  private reportSequence: Promise<unknown> = Promise.resolve();
+
+  private enqueueReportSequence<T>(operation: () => Promise<T>): Promise<T> {
+    const next = this.reportSequence.then(operation, operation);
+    this.reportSequence = next.catch(() => undefined);
+    return next;
+  }
 
   private clearRampTimer(): void {
     if (this.rampStepTimer !== null) {
@@ -219,21 +226,29 @@ export class HidFfbService {
     if (!this.connected) {
       return;
     }
+    const errors: string[] = [];
     for (const key of EFFECT_KEYS) {
       try {
         await this.sendReport(0x0a, buildOp(BLOCK[key], 3, 0));
-      } catch {
-        // Device may drop mid-sequence; caller still clears local state.
+      } catch (error) {
+        errors.push(error instanceof Error ? error.message : String(error));
       }
     }
     try {
       await this.sendReport(0x0c, new Uint8Array([0x04]));
-    } catch {
-      // ignore
+    } catch (error) {
+      errors.push(error instanceof Error ? error.message : String(error));
+    }
+    if (errors.length > 0) {
+      throw new Error(`Failed to stop all HID effects: ${errors.join('; ')}`);
     }
   }
 
-  async connect(): Promise<string> {
+  connect(): Promise<string> {
+    return this.enqueueReportSequence(() => this.connectNow());
+  }
+
+  private async connectNow(): Promise<string> {
     if (isDesktopApp()) {
       this.nativeDisconnectUnlisten?.();
       this.nativeDisconnectUnlisten = await nativeOnHidDisconnected(() => this.handleNativeDisconnect());
@@ -309,21 +324,41 @@ export class HidFfbService {
     return device.productName;
   }
 
-  async disconnect(): Promise<void> {
+  disconnect(): Promise<void> {
+    return this.enqueueReportSequence(() => this.disconnectNow());
+  }
+
+  private async disconnectNow(): Promise<void> {
     if (isDesktopApp()) {
-      if (this.nativeUnlisten) {
-        this.nativeUnlisten();
-        this.nativeUnlisten = null;
+      const errors: string[] = [];
+      try {
+        try {
+          await this.stopAllOnDevice();
+        } catch (error) {
+          errors.push(error instanceof Error ? error.message : String(error));
+        }
+        if (this.nativeUnlisten) {
+          this.nativeUnlisten();
+          this.nativeUnlisten = null;
+        }
+        if (this.nativeDisconnectUnlisten) {
+          this.nativeDisconnectUnlisten();
+          this.nativeDisconnectUnlisten = null;
+        }
+        this.nativeConnected = false;
+        this.nativeDeviceName = '';
+        await nativeDisconnectHid();
+      } catch (error) {
+        errors.push(error instanceof Error ? error.message : String(error));
+      } finally {
+        this.nativeConnected = false;
+        this.nativeDeviceName = '';
+        this.clearRunningState();
+        this.notifyConnection(false);
       }
-      if (this.nativeDisconnectUnlisten) {
-        this.nativeDisconnectUnlisten();
-        this.nativeDisconnectUnlisten = null;
+      if (errors.length > 0) {
+        throw new Error(errors.join('; '));
       }
-      this.nativeConnected = false;
-      this.nativeDeviceName = '';
-      await nativeDisconnectHid().catch(() => undefined);
-      this.clearRunningState();
-      this.notifyConnection(false);
       return;
     }
     const device = this.device;
@@ -346,7 +381,11 @@ export class HidFfbService {
   }
 
   /** Start or update a specific effect. Safe to call while already running (updates parameters). */
-  async startEffect(key: EffectKey, params: EffectParams = {}): Promise<void> {
+  startEffect(key: EffectKey, params: EffectParams = {}): Promise<void> {
+    return this.enqueueReportSequence(() => this.startEffectNow(key, params));
+  }
+
+  private async startEffectNow(key: EffectKey, params: EffectParams = {}): Promise<void> {
     if (key === 'ra') {
       await this.startLabRamp(params);
       return;
@@ -379,7 +418,11 @@ export class HidFfbService {
   }
 
   /** Update an active effect's HID gain in place, preserving its playback phase. */
-  async updateEffectGain(key: EffectKey, effectGainPct: number): Promise<void> {
+  updateEffectGain(key: EffectKey, effectGainPct: number): Promise<void> {
+    return this.enqueueReportSequence(() => this.updateEffectGainNow(key, effectGainPct));
+  }
+
+  private async updateEffectGainNow(key: EffectKey, effectGainPct: number): Promise<void> {
     if (!this.running[key]) return;
     const type = key === 'ra' ? TYPE.cf : TYPE[key];
     await this.sendReport(
@@ -420,7 +463,7 @@ export class HidFfbService {
     const stepMs = Math.max(40, Math.round(RAMP_DURATION_MS / RAMP_STEPS));
     const scheduleStep = () => {
       this.rampStepTimer = setTimeout(() => {
-        void this.advanceLabRamp(stepMs).catch(() => {
+        void this.enqueueReportSequence(() => this.advanceLabRamp(stepMs)).catch(() => {
           this.running.ra = false;
           this.clearRampTimer();
         });
@@ -445,14 +488,18 @@ export class HidFfbService {
     }
 
     this.rampStepTimer = setTimeout(() => {
-      void this.advanceLabRamp(stepMs).catch(() => {
+      void this.enqueueReportSequence(() => this.advanceLabRamp(stepMs)).catch(() => {
         this.running.ra = false;
         this.clearRampTimer();
       });
     }, stepMs);
   }
 
-  async stopEffect(key: EffectKey): Promise<void> {
+  stopEffect(key: EffectKey): Promise<void> {
+    return this.enqueueReportSequence(() => this.stopEffectNow(key));
+  }
+
+  private async stopEffectNow(key: EffectKey): Promise<void> {
     if (key === 'ra') {
       this.clearRampTimer();
     }
@@ -462,7 +509,11 @@ export class HidFfbService {
     this.running[key] = false;
   }
 
-  async stopAll(): Promise<void> {
+  stopAll(): Promise<void> {
+    return this.enqueueReportSequence(() => this.stopAllNow());
+  }
+
+  private async stopAllNow(): Promise<void> {
     await this.stopAllOnDevice();
     this.clearRunningState();
   }
@@ -491,9 +542,9 @@ export class HidFfbService {
   }
 
   /** Low-level HID output — used by Performance Test runner. */
-  async sendRawReport(reportId: number, data: Uint8Array | number[]): Promise<void> {
+  sendRawReport(reportId: number, data: Uint8Array | number[]): Promise<void> {
     const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
-    await this.sendReport(reportId, bytes);
+    return this.enqueueReportSequence(() => this.sendReport(reportId, bytes));
   }
 
   private async sendReport(reportId: number, data: Uint8Array): Promise<void> {
