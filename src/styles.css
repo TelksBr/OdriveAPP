@@ -2699,6 +2699,15 @@ html[data-wco='on'] .topbar {
   gap: 8px;
 }
 
+.ffb-effect-gain-control {
+  max-width: 560px;
+  margin-bottom: 14px;
+}
+
+.ffb-effect-gain-control .ffb-inline-hint {
+  margin: 5px 0 0;
+}
+
 .ffb-effect-card .field-copy small {
   line-height: 1.45;
 }

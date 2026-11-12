@@ -31,6 +31,8 @@ export function clampRampLabPct(pct: number): number {
 export interface EffectParams {
   /** 0–100 for condition effects (spring, damper, friction). */
   pct?: number;
+  /** HID Set Effect Gain, normalized from 0–100%. */
+  effectGainPct?: number;
   /** −100…+100 for constant force and ramp end level. */
   magnitudePct?: number;
   /** Sine frequency in Hz (lab slider 5–60). */
@@ -49,8 +51,14 @@ function u16Bytes(v: number): [number, number] {
   return [n & 0xff, (n >> 8) & 0xff];
 }
 
+export function effectGainPctToHidGain(pct: number): number {
+  const finitePct = Number.isFinite(pct) ? pct : 100;
+  const normalizedPct = Math.max(0, Math.min(100, finitePct));
+  return Math.round((normalizedPct / 100) * 255);
+}
+
 // 0x01  SET_EFFECT_REPORT — 17 bytes (incl. enableAxis + direction; zeroed for 1-axis wheel)
-function buildSetEffect(blockIdx: number, type: number, durationMs = 0xffff, gain = 255): Uint8Array {
+export function buildSetEffectReport(blockIdx: number, type: number, durationMs = 0xffff, gain = 255): Uint8Array {
   return new Uint8Array([
     blockIdx, type,
     durationMs & 0xff, (durationMs >> 8) & 0xff,
@@ -321,7 +329,10 @@ export class HidFfbService {
     const blockIdx = BLOCK[key];
     const type = TYPE[key];
 
-    await this.sendReport(0x01, buildSetEffect(blockIdx, type, 0xffff, 255));
+    await this.sendReport(
+      0x01,
+      buildSetEffectReport(blockIdx, type, 0xffff, effectGainPctToHidGain(params.effectGainPct ?? 100)),
+    );
 
     if (key === 'cf') {
       const raw = params.magnitudePct ?? params.pct ?? 0;
@@ -341,6 +352,16 @@ export class HidFfbService {
     this.running[key] = true;
   }
 
+  /** Update an active effect's HID gain in place, preserving its playback phase. */
+  async updateEffectGain(key: EffectKey, effectGainPct: number): Promise<void> {
+    if (!this.running[key]) return;
+    const type = key === 'ra' ? TYPE.cf : TYPE[key];
+    await this.sendReport(
+      0x01,
+      buildSetEffectReport(BLOCK[key], type, 0xffff, effectGainPctToHidGain(effectGainPct)),
+    );
+  }
+
   /**
    * Lab ramp: stepped Constant Force (slot 7) — avoids firmware HID Ramp quirks
    * (instant snap when SET_EFFECT report was truncated / startTime unset).
@@ -356,7 +377,10 @@ export class HidFfbService {
       await this.sendReport(0x0a, buildOp(blockIdx, 3, 0));
     }
 
-    await this.sendReport(0x01, buildSetEffect(blockIdx, TYPE.cf, 0xffff, 255));
+    await this.sendReport(
+      0x01,
+      buildSetEffectReport(blockIdx, TYPE.cf, 0xffff, effectGainPctToHidGain(params.effectGainPct ?? 100)),
+    );
     await this.sendReport(0x05, buildConstantForce(blockIdx, 0));
     await this.sendReport(0x0a, buildOp(blockIdx, 1, 0));
     this.running.ra = true;

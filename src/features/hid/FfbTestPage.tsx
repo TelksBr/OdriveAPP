@@ -31,14 +31,14 @@ type EffectDef = {
   hintKey?: string;
 };
 
-function buildEffectParams(key: EffectKey, value: number, secondValue?: number): EffectParams {
+function buildEffectParams(key: EffectKey, value: number, secondValue?: number, effectGainPct = 100): EffectParams {
   if (key === 'cf' || key === 'ra') {
-    return { magnitudePct: value };
+    return { magnitudePct: value, effectGainPct };
   }
   if (key === 'si') {
-    return { pct: value, frequencyHz: secondValue ?? 15 };
+    return { pct: value, frequencyHz: secondValue ?? 15, effectGainPct };
   }
-  return { pct: value };
+  return { pct: value, effectGainPct };
 }
 
 function getEffects(locale: Locale): EffectDef[] {
@@ -132,6 +132,7 @@ export function FfbTestPage() {
   const [values, setValues] = useState<Record<EffectKey, number>>({
     cf: 0, sp: 50, da: 50, fr: 50, si: 40, ra: 0,
   });
+  const [effectGainPct, setEffectGainPct] = useState(100);
   const [secondaryValues, setSecondaryValues] = useState<Partial<Record<EffectKey, number>>>({ si: 15 });
   const [telemetryEnabled, setTelemetryEnabled] = useState(true);
   const [intervalMs, setIntervalMs] = useState(250);
@@ -199,7 +200,7 @@ export function FfbTestPage() {
   async function toggleEffect(key: EffectKey, enable: boolean) {
     await wrapAsync(async () => {
       if (enable) {
-        await hidFfbService.startEffect(key, buildEffectParams(key, values[key], secondaryValues[key]));
+        await hidFfbService.startEffect(key, buildEffectParams(key, values[key], secondaryValues[key], effectGainPct));
       } else {
         await hidFfbService.stopEffect(key);
       }
@@ -211,7 +212,7 @@ export function FfbTestPage() {
     setValues((prev) => ({ ...prev, [key]: value }));
     if (running[key] && hidFfbService.connected) {
       await wrapAsync(async () => {
-        await hidFfbService.startEffect(key, buildEffectParams(key, value, secondaryValues[key]));
+        await hidFfbService.startEffect(key, buildEffectParams(key, value, secondaryValues[key], effectGainPct));
       });
     }
   }
@@ -220,9 +221,19 @@ export function FfbTestPage() {
     setSecondaryValues((prev) => ({ ...prev, [key]: value }));
     if (running[key] && hidFfbService.connected) {
       await wrapAsync(async () => {
-        await hidFfbService.startEffect(key, buildEffectParams(key, values[key], value));
+        await hidFfbService.startEffect(key, buildEffectParams(key, values[key], value, effectGainPct));
       });
     }
+  }
+
+  async function updateEffectGain(value: number) {
+    setEffectGainPct(value);
+    if (!hid.connected) return;
+    await wrapAsync(async () => {
+      for (const key of EFFECT_KEYS) {
+        if (running[key]) await hidFfbService.updateEffectGain(key, value);
+      }
+    });
   }
 
   return (
@@ -259,6 +270,21 @@ export function FfbTestPage() {
       </Card>
 
       <Card title={translate(locale, 'ffbEffectsCardTitle')} description={translate(locale, 'ffbEffectsCardDescription')}>
+        <div className="ffb-effect-gain-control">
+          <label className="ffb-slider-row">
+            <span>{translate(locale, 'ffbEffectGainLabel')}</span>
+            <strong>{effectGainPct}%</strong>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={1}
+              value={effectGainPct}
+              onChange={(event) => void updateEffectGain(Number(event.target.value))}
+            />
+          </label>
+          <p className="ffb-inline-hint">{translate(locale, 'ffbEffectGainHint')}</p>
+        </div>
         <div className="ffb-effect-grid">
           {effects.map((effect) => (
             <EffectCard
