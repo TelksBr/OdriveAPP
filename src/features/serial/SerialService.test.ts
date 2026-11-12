@@ -39,4 +39,19 @@ describe('SerialService ODrive writes', () => {
       'ERROR invalid property',
     );
   });
+
+  test('PWA reader keeps multiple and fragmented lines from serial chunks', () => {
+    const service = new SerialService();
+    const received: string[] = [];
+    service.subscribe((event) => {
+      if (event.type === 'rx') received.push(event.line);
+    });
+    const internals = service as unknown as { consumeChunk: (chunk: string) => void };
+
+    internals.consumeChunk('[sys.a?|1]\r\n[sys.b?|2]\npartial');
+    expect(received).toEqual(['[sys.a?|1]', '[sys.b?|2]']);
+
+    internals.consumeChunk(' line\r\n');
+    expect(received).toEqual(['[sys.a?|1]', '[sys.b?|2]', 'partial line']);
+  });
 });
