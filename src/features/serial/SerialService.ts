@@ -1,5 +1,6 @@
 import { HANDSHAKE_COMMAND, HANDSHAKE_TIMEOUT_MS, isControlPortReply, unwrapControlReply } from './serialPortProbe';
 import { isOdriveErrorReply } from './odriveErrors';
+import { matchesSerialReply } from './serialReply';
 import { sleep } from '../../shared/sleep';
 import {
   isDesktopApp,
@@ -654,6 +655,11 @@ export class SerialService {
   private resolveNext(line: string): void {
     const next = this.pending[0];
     if (!next) {
+      this.emit({ type: 'rx', line });
+      return;
+    }
+
+    if (!matchesSerialReply(next.command, line)) {
       this.emit({ type: 'rx', line });
       return;
     }

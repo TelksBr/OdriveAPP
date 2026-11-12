@@ -54,4 +54,40 @@ describe('SerialService ODrive writes', () => {
     internals.consumeChunk(' line\r\n');
     expect(received).toEqual(['[sys.a?|1]', '[sys.b?|2]', 'partial line']);
   });
+
+  test('PWA keeps waiting when a wrapped reply belongs to another command', () => {
+    Object.defineProperty(globalThis, 'window', {
+      configurable: true,
+      value: {
+        location: { hostname: 'localhost', protocol: 'http:' },
+        setTimeout: globalThis.setTimeout.bind(globalThis),
+        clearTimeout: globalThis.clearTimeout.bind(globalThis),
+      },
+    });
+
+    const service = new SerialService();
+    let reply = '';
+    const entry = {
+      command: 'axis.maxtq?',
+      kind: 'reply' as const,
+      expectReply: true,
+      log: false,
+      resolve: (line: string) => { reply = line; },
+      reject: () => undefined,
+      timeoutId: 0,
+    };
+    const internals = service as unknown as {
+      pending: typeof entry[];
+      resolveNext: (line: string) => void;
+    };
+    internals.pending = [entry];
+
+    internals.resolveNext('[axis.invert?|0]');
+    expect(reply).toBe('');
+    expect(internals.pending).toHaveLength(1);
+
+    internals.resolveNext('[axis.maxtq?|25]');
+    expect(reply).toBe('[axis.maxtq?|25]');
+    expect(internals.pending).toHaveLength(0);
+  });
 });

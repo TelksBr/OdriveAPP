@@ -174,8 +174,11 @@ pub fn connect(
                     while start.elapsed() < timeout {
                         match port.read(&mut read_buf) {
                             Ok(n) if n > 0 => {
-                                let (reply, unsolicited) =
-                                    route_query_lines(line_buffer.push(&read_buf[..n]), got_reply);
+                                let (reply, unsolicited) = route_query_lines(
+                                    &command,
+                                    line_buffer.push(&read_buf[..n]),
+                                    got_reply,
+                                );
                                 if let Some(reply) = reply {
                                     got_reply = true;
                                     let _ = responder.send(Ok(reply));
