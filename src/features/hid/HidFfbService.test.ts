@@ -54,4 +54,27 @@ describe('HID PID effect gain', () => {
     expect(reports[0].data[10]).toBe(0);
     expect(service.isRunning('fr')).toBe(true);
   });
+
+  test('clears native connection and active effects after a device disconnect', () => {
+    const service = new HidFfbService();
+    const connectionEvents: Array<[boolean, string, boolean | undefined]> = [];
+    service.onConnectionChange((connected, name, unplugged) => {
+      connectionEvents.push([connected, name, unplugged]);
+    });
+    const internals = service as unknown as {
+      nativeConnected: boolean;
+      nativeDeviceName: string;
+      running: Record<EffectKey, boolean>;
+      handleNativeDisconnect: () => void;
+    };
+    internals.nativeConnected = true;
+    internals.nativeDeviceName = 'WheelForge';
+    internals.running.fr = true;
+
+    internals.handleNativeDisconnect();
+
+    expect(service.connected).toBe(false);
+    expect(service.isRunning('fr')).toBe(false);
+    expect(connectionEvents.at(-1)).toEqual([false, '', true]);
+  });
 });

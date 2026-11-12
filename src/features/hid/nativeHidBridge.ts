@@ -41,3 +41,8 @@ export async function nativeOnHidReport(callback: (data: Uint8Array) => void): P
   });
 }
 
+export async function nativeOnHidDisconnected(callback: () => void): Promise<UnlistenFn> {
+  if (!isDesktopApp()) return () => undefined;
+  return listen('hid-disconnected', callback);
+}
+

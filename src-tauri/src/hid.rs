@@ -2,7 +2,7 @@ use hidapi::{HidApi, HidDevice};
 use serde::{Deserialize, Serialize};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
-use std::thread;
+use std::thread::{self, JoinHandle};
 use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 
@@ -30,6 +30,7 @@ pub struct HidState {
     pub device: Arc<Mutex<Option<HidDevice>>>,
     pub is_connected: Arc<AtomicBool>,
     pub stop_signal: Arc<AtomicBool>,
+    reader_thread: Mutex<Option<JoinHandle<()>>>,
 }
 
 impl HidState {
@@ -38,6 +39,7 @@ impl HidState {
             device: Arc::new(Mutex::new(None)),
             is_connected: Arc::new(AtomicBool::new(false)),
             stop_signal: Arc::new(AtomicBool::new(false)),
+            reader_thread: Mutex::new(None),
         }
     }
 }
@@ -68,15 +70,22 @@ pub fn disconnect_hid(state: &HidState) -> Result<(), String> {
 
     let mut dev = state.device.lock().map_err(|e| e.to_string())?;
     *dev = None;
+    drop(dev);
+
+    let reader_thread = state
+        .reader_thread
+        .lock()
+        .map_err(|e| e.to_string())?
+        .take();
+    if let Some(reader_thread) = reader_thread {
+        reader_thread
+            .join()
+            .map_err(|_| "HID reader thread panicked".to_string())?;
+    }
     Ok(())
 }
 
-pub fn connect_hid(
-    app: AppHandle,
-    state: &HidState,
-    vid: u16,
-    pid: u16,
-) -> Result<String, String> {
+pub fn connect_hid(app: AppHandle, state: &HidState, vid: u16, pid: u16) -> Result<String, String> {
     let _ = disconnect_hid(state);
 
     let api = HidApi::new().map_err(|e| e.to_string())?;
@@ -103,18 +112,30 @@ pub fn connect_hid(
 
     // Spawn 1 kHz reader thread for input reports (pedals, buttons, high-frequency position)
     let dev_ref = Arc::clone(&state.device);
-    thread::spawn(move || {
+    let reader_thread = thread::spawn(move || {
         let mut buf = [0u8; 64];
         while !stop_signal.load(Ordering::SeqCst) {
             let mut read_bytes = 0;
+            let mut read_error = false;
             {
                 if let Ok(d_guard) = dev_ref.lock() {
                     if let Some(ref d) = *d_guard {
-                        if let Ok(len) = d.read(&mut buf) {
-                            read_bytes = len;
+                        match d.read(&mut buf) {
+                            Ok(len) => read_bytes = len,
+                            Err(_) => read_error = true,
                         }
                     }
                 }
+            }
+
+            if read_error {
+                is_connected.store(false, Ordering::SeqCst);
+                stop_signal.store(true, Ordering::SeqCst);
+                if let Ok(mut d_guard) = dev_ref.lock() {
+                    *d_guard = None;
+                }
+                let _ = app_handle.emit("hid-disconnected", ());
+                break;
             }
 
             if read_bytes > 0 {
@@ -130,6 +151,7 @@ pub fn connect_hid(
         }
         is_connected.store(false, Ordering::SeqCst);
     });
+    *state.reader_thread.lock().map_err(|e| e.to_string())? = Some(reader_thread);
 
     let _ = app.emit("hid-connected", ());
     Ok(format!("{:04x}:{:04x}", vid, pid))
@@ -150,3 +172,27 @@ pub fn send_hid_report(state: &HidState, report_id: u8, data: &[u8]) -> Result<(
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn disconnect_waits_for_the_reader_thread_to_exit() {
+        let state = HidState::new();
+        let stop_signal = Arc::clone(&state.stop_signal);
+        let exited = Arc::new(AtomicBool::new(false));
+        let worker_exited = Arc::clone(&exited);
+        let reader = thread::spawn(move || {
+            while !stop_signal.load(Ordering::SeqCst) {
+                thread::yield_now();
+            }
+            worker_exited.store(true, Ordering::SeqCst);
+        });
+        *state.reader_thread.lock().unwrap() = Some(reader);
+
+        disconnect_hid(&state).unwrap();
+
+        assert!(exited.load(Ordering::SeqCst));
+        assert!(!state.is_connected.load(Ordering::SeqCst));
+    }
+}

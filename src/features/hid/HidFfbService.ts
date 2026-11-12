@@ -2,6 +2,7 @@ import { isDesktopApp } from '../serial/nativeSerialBridge';
 import {
   nativeConnectHid,
   nativeDisconnectHid,
+  nativeOnHidDisconnected,
   nativeOnHidReport,
   nativeSendHidReport,
 } from './nativeHidBridge';
@@ -143,6 +144,7 @@ export class HidFfbService {
   private nativeConnected = false;
   private nativeDeviceName = '';
   private nativeUnlisten: (() => void) | null = null;
+  private nativeDisconnectUnlisten: (() => void) | null = null;
   private nativeInputListeners = new Set<(event: { reportId: number; data: DataView }) => void>();
   private running: Record<EffectKey, boolean> = { ...EMPTY_RUNNING };
   private connectionListeners = new Set<ConnectionListener>();
@@ -201,6 +203,17 @@ export class HidFfbService {
     }
   }
 
+  private handleNativeDisconnect(): void {
+    this.nativeConnected = false;
+    this.nativeDeviceName = '';
+    this.nativeUnlisten?.();
+    this.nativeUnlisten = null;
+    this.nativeDisconnectUnlisten?.();
+    this.nativeDisconnectUnlisten = null;
+    this.clearRunningState();
+    this.notifyConnection(false, true);
+  }
+
   /** Stop every firmware effect slot — ignores local running flags (firmware may still be active). */
   private async stopAllOnDevice(): Promise<void> {
     if (!this.connected) {
@@ -222,7 +235,16 @@ export class HidFfbService {
 
   async connect(): Promise<string> {
     if (isDesktopApp()) {
-      const dev = await nativeConnectHid(OPENFFBOARD_VENDOR_ID, ODRIVE_WHEEL_PRODUCT_ID);
+      this.nativeDisconnectUnlisten?.();
+      this.nativeDisconnectUnlisten = await nativeOnHidDisconnected(() => this.handleNativeDisconnect());
+      let dev: string;
+      try {
+        dev = await nativeConnectHid(OPENFFBOARD_VENDOR_ID, ODRIVE_WHEEL_PRODUCT_ID);
+      } catch (error) {
+        this.nativeDisconnectUnlisten?.();
+        this.nativeDisconnectUnlisten = null;
+        throw error;
+      }
       this.nativeConnected = true;
       this.nativeDeviceName = `OpenFFBoard FFB Wheel (${dev})`;
       if (this.nativeUnlisten) {
@@ -292,6 +314,10 @@ export class HidFfbService {
       if (this.nativeUnlisten) {
         this.nativeUnlisten();
         this.nativeUnlisten = null;
+      }
+      if (this.nativeDisconnectUnlisten) {
+        this.nativeDisconnectUnlisten();
+        this.nativeDisconnectUnlisten = null;
       }
       this.nativeConnected = false;
       this.nativeDeviceName = '';
