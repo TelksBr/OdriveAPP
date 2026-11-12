@@ -56,6 +56,7 @@ describe('normalizeReply', () => {
 
   test('throws on ODrive error lines', () => {
     expect(() => normalizeReply('invalid property')).toThrow(/invalid property/i);
+    expect(() => normalizeReply('[axis.maxtq=bad|ERR]')).toThrow();
   });
 });
 
